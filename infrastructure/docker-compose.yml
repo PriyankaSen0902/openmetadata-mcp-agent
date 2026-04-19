@@ -1,0 +1,25 @@
+services:
+  agent-backend:
+    build:
+      context: ..
+      dockerfile: infrastructure/Dockerfile
+    container_name: openmetadata-mcp-agent-backend
+    restart: unless-stopped
+    network_mode: host
+    environment:
+      AI_SDK_HOST: ${AI_SDK_HOST:-http://localhost:8585}
+      AI_SDK_TOKEN: ${AI_SDK_TOKEN:?AI_SDK_TOKEN must be set in .env}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:?OPENAI_API_KEY must be set in .env}
+      OPENAI_MODEL: ${OPENAI_MODEL:-gpt-4o-mini}
+      HOST: 127.0.0.1
+      PORT: 8000
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://127.0.0.1:8000/api/v1/healthz"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+  # Note: OpenMetadata itself is intentionally NOT in this compose file.
+  # Run OM separately via its own docker-compose (see .idea/Plan/Validation/SetupGuide.md).
+  # We connect to it as a CLIENT via AI_SDK_HOST.

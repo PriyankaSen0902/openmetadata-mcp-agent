@@ -1,0 +1,20 @@
+# CODEOWNERS for openmetadata-mcp-agent
+#
+# Default reviewer for everything is the tech lead.
+# The actual reviewer assignment is done by
+# .github/workflows/auto-assign-reviewer.yml so PRs from outside
+# contributors land on @PriyankaSen0902 instead. This file is the
+# fallback that GitHub uses when the workflow cannot run (for
+# example, if Actions are disabled on a fork) and is also what
+# branch protection rules consult when "Require review from Code
+# Owners" is on.
+
+*               @GunaPalanivel
+
+.github/        @GunaPalanivel
+.idea/          @GunaPalanivel
+ui/             @GunaPalanivel
+src/copilot/    @GunaPalanivel
+tests/          @GunaPalanivel
+infrastructure/ @GunaPalanivel
+docs/           @GunaPalanivel

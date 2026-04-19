@@ -1,0 +1,42 @@
+# Pre-commit hooks for openmetadata-mcp-agent
+# Install: `pre-commit install` (after `make install_dev_env`)
+# Manual run on all files: `pre-commit run --all-files`
+#
+# All third-party hooks are SHA-pinned per Security/CIHardening.md to defend
+# against tag-mutation supply-chain attacks. Update via dependabot PRs only.
+
+repos:
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.4.4
+    hooks:
+      - id: ruff
+        args: [--fix, --exit-non-zero-on-fix]
+      - id: ruff-format
+
+  - repo: https://github.com/gitleaks/gitleaks
+    rev: v8.18.4
+    hooks:
+      - id: gitleaks
+
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.6.0
+    hooks:
+      - id: trailing-whitespace
+      - id: end-of-file-fixer
+      - id: check-yaml
+      - id: check-added-large-files
+        args: [--maxkb=500]
+      - id: check-merge-conflict
+      - id: check-case-conflict
+      - id: detect-private-key
+      - id: no-commit-to-branch
+        args: [--branch, main]
+
+  - repo: local
+    hooks:
+      - id: license-header-check
+        name: License header check
+        entry: python scripts/check_license_headers.py
+        language: system
+        files: \.(py|ts|tsx|js|jsx)$
+        exclude: ^(\.idea/|\.cursor/|\.claude/|node_modules/|ui/dist/|build/|dist/)

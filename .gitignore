@@ -1,0 +1,155 @@
+# =============================================================================
+# .gitignore for openmetadata-mcp-agent
+#
+# Strategy:
+#   - Most of .idea/Plan/* IS PUBLISHED. Strong signal of engineering maturity:
+#     ADRs, NFRs, threat model, control coverage, quality gates, runbooks, PRR,
+#     coding standards, vision alignment, etc.
+#   - A small subset stays PRIVATE because publishing them would either spoil
+#     the demo, name competitors unprofessionally, or expose tactics that read
+#     as cynical out of context. Those exclusions are explicit below.
+#   - .cursor/, .vscode/, .claude/, .windsurf/ are workspace-specific and never
+#     pushed.
+# =============================================================================
+
+# ---------------------------------------------------------------------------
+# .idea/ — start by ignoring CONTENTS, then re-include the public Plan/ tree,
+# then re-exclude tactical files inside Plan/. The /* (not /) is critical so
+# git doesn't prune-walk the directory.
+# ---------------------------------------------------------------------------
+.idea/*
+!.idea/Plan/
+
+# Tactical files inside Plan that stay PRIVATE
+.idea/Plan/Project/JudgePersona.md
+.idea/Plan/Demo/CompetitiveMatrix.md
+.idea/Plan/Demo/Narrative.md
+.idea/Plan/Demo/FailureRecovery.md
+.idea/Plan/DataFindings/BoardStatus.md
+.idea/Plan/IssueAnalyzer/
+.idea/Plan/PR-Review/ReviewLog.md
+
+# Other IDE / agent workspace metadata (NEVER push)
+.cursor/
+.cursor-rules/
+.vscode/
+.claude/
+.windsurf/
+.aider*
+
+# ---------------------------------------------------------------------------
+# Python
+# ---------------------------------------------------------------------------
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.egg-info/
+*.egg
+.eggs/
+dist/
+build/
+sdist/
+develop-eggs/
+.installed.cfg
+MANIFEST
+pip-wheel-metadata/
+share/python-wheels/
+
+# Virtual envs
+.venv/
+venv/
+env/
+ENV/
+.python-version
+
+# Test / coverage
+.pytest_cache/
+.coverage
+.coverage.*
+htmlcov/
+.tox/
+.nox/
+coverage.xml
+*.cover
+.hypothesis/
+
+# Type checkers
+.mypy_cache/
+.dmypy.json
+dmypy.json
+.pyre/
+.pytype/
+
+# Linters
+.ruff_cache/
+
+# Pre-commit
+.pre-commit-cache/
+
+# Notebook checkpoints (in case anyone uses Jupyter for prototyping)
+.ipynb_checkpoints/
+*-checkpoint.ipynb
+
+# ---------------------------------------------------------------------------
+# Node / UI
+# ---------------------------------------------------------------------------
+node_modules/
+ui/node_modules/
+ui/dist/
+ui/.vite/
+ui/coverage/
+*.tsbuildinfo
+.npm/
+.yarn/
+yarn-error.log
+npm-debug.log*
+
+# ---------------------------------------------------------------------------
+# Logs and runtime
+# ---------------------------------------------------------------------------
+logs/
+*.log
+
+# ---------------------------------------------------------------------------
+# Secrets — NEVER commit these
+# ---------------------------------------------------------------------------
+.env
+.env.local
+.env.*.local
+*.pem
+*.key
+secrets/
+*credentials*
+# Token-bearing filenames: be specific so we don't catch design files
+# like ui/src/styles/tokens.css. Gitleaks (CI) is the primary line of
+# defense for token CONTENT; these patterns are for filename hygiene.
+*_token*.txt
+*_token*.json
+*token.key
+*-token-*
+.tokens
+oauth_tokens/
+
+# ---------------------------------------------------------------------------
+# OS
+# ---------------------------------------------------------------------------
+.DS_Store
+Thumbs.db
+desktop.ini
+*.swp
+*.swo
+*~
+
+# ---------------------------------------------------------------------------
+# Demo artifacts (binary; large; recreate from script if needed)
+# ---------------------------------------------------------------------------
+demo/recording_*.mp4
+demo/backup_recording.mp4
+assets/hero.gif
+
+# ---------------------------------------------------------------------------
+# CI runtime caches
+# ---------------------------------------------------------------------------
+.cache/

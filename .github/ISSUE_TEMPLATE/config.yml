@@ -1,0 +1,14 @@
+blank_issues_enabled: false
+
+contact_links:
+  - name: Security vulnerability report
+    url: https://github.com/GunaPalanivel/openmetadata-mcp-agent/security/policy
+    about: For security issues, follow the responsible disclosure flow in SECURITY.md (do NOT open a public issue)
+
+  - name: OpenMetadata upstream issue
+    url: https://github.com/open-metadata/OpenMetadata/issues
+    about: For issues with OpenMetadata itself (not this agent), file upstream
+
+  - name: Hackathon discussion
+    url: https://github.com/open-metadata/OpenMetadata/issues/26645
+    about: General hackathon coordination on the WeMakeDevs x OpenMetadata board

@@ -1,0 +1,62 @@
+name: Auto Assign Reviewer
+
+on:
+  pull_request_target:
+    types: [opened, reopened, ready_for_review]
+
+permissions:
+  pull-requests: write
+
+jobs:
+  assign:
+    name: Request reviewer based on author
+    runs-on: ubuntu-22.04
+    timeout-minutes: 2
+    if: github.event.pull_request.draft == false
+    steps:
+      - name: Request reviewer
+        uses: actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea  # v7.0.1
+        with:
+          script: |
+            const team = new Set([
+              'PriyankaSen0902',
+              'aravindsai003',
+              '5009226-bhawikakumari',
+            ]);
+            const lead = 'GunaPalanivel';
+            const fallback = 'PriyankaSen0902';
+
+            const author = context.payload.pull_request.user.login;
+            let reviewer;
+
+            if (team.has(author)) {
+              reviewer = lead;
+            } else if (author === lead) {
+              reviewer = fallback;
+            } else {
+              reviewer = fallback;
+            }
+
+            if (reviewer === author) {
+              core.info(`Skipping: author ${author} would be self-reviewer.`);
+              return;
+            }
+
+            const existing = (context.payload.pull_request.requested_reviewers || [])
+              .map(r => r.login);
+            if (existing.includes(reviewer)) {
+              core.info(`Reviewer ${reviewer} already requested on PR #${context.payload.pull_request.number}.`);
+              return;
+            }
+
+            try {
+              await github.rest.pulls.requestReviewers({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                pull_number: context.payload.pull_request.number,
+                reviewers: [reviewer],
+              });
+              core.info(`Requested ${reviewer} on PR #${context.payload.pull_request.number} (author: ${author}).`);
+            } catch (err) {
+              core.warning(`Could not request ${reviewer}: ${err.message}`);
+            }

@@ -1,0 +1,145 @@
+# =============================================================================
+# Makefile for openmetadata-mcp-agent
+#
+# Naming convention: agent-specific targets are kebab-case-clear; OpenMetadata
+# upstream contributors will recognize aliases like install_dev_env, py_format,
+# static-checks below.
+# =============================================================================
+
+.DEFAULT_GOAL := help
+.PHONY: help install install_dev_env install_ui install-hooks demo demo-cached demo-fresh \
+        restart-agent test test-unit test-integration test-security test-arch \
+        lint py_format static-checks license-header-check pre-commit-all ci-local clean
+
+# -----------------------------------------------------------------------------
+# Help (default target)
+# -----------------------------------------------------------------------------
+help:
+	@echo "openmetadata-mcp-agent — common targets"
+	@echo ""
+	@echo "  Setup:"
+	@echo "    make install              Install runtime + dev dependencies (agent + UI)"
+	@echo "    make install_dev_env      Alias for 'make install' (matches OM upstream Makefile)"
+	@echo "    make install_ui           Install UI dependencies only"
+	@echo "    make install-hooks        Install + run pre-commit hooks (required before first commit)"
+	@echo ""
+	@echo "  Run:"
+	@echo "    make demo                 Start agent backend + UI for live demo"
+	@echo "    make demo-cached          Start agent in --demo-mode (serves pre-cached responses)"
+	@echo "    make demo-fresh           Drop seed data, reload, restart everything"
+	@echo "    make restart-agent        Restart only the agent backend"
+	@echo ""
+	@echo "  Quality gates:"
+	@echo "    make test                 Run all tests (unit + security + architecture)"
+	@echo "    make test-unit            Run unit tests only (<10s)"
+	@echo "    make test-integration     Run integration tests (requires running OM container)"
+	@echo "    make test-security        Run security tests (prompt injection, SC-N claims)"
+	@echo "    make test-arch            Run architecture tests (Three Laws layer enforcement)"
+	@echo "    make lint                 Run ruff lint check"
+	@echo "    make py_format            Format Python with ruff (alias for OM contributors)"
+	@echo "    make static-checks        Run mypy --strict (alias for OM contributors)"
+	@echo "    make license-header-check Verify every source file has Apache 2.0 header"
+	@echo "    make pre-commit-all       Run every pre-commit hook against every file"
+	@echo "    make ci-local             Run the full CI suite locally"
+	@echo ""
+	@echo "  Cleanup:"
+	@echo "    make clean                Remove build artifacts, caches"
+
+# -----------------------------------------------------------------------------
+# Install
+# -----------------------------------------------------------------------------
+install:
+	pip install -e ".[dev]"
+	@$(MAKE) install_ui
+	@echo "Installed. Next: cp .env.example .env && edit; then make demo"
+
+install_dev_env: install   ## Alias for OpenMetadata-upstream contributors
+
+install_ui:
+	@if [ -d "ui" ]; then cd ui && npm ci; fi
+
+install-hooks:
+	@command -v pre-commit >/dev/null 2>&1 || pip install pre-commit
+	pre-commit install
+	pre-commit run --all-files
+	@echo "Pre-commit hooks installed and clean."
+
+# -----------------------------------------------------------------------------
+# Run
+# -----------------------------------------------------------------------------
+demo:
+	@echo "Starting agent backend on http://127.0.0.1:8000 ..."
+	uvicorn copilot.api.main:app --host 127.0.0.1 --port 8000 --reload &
+	@if [ -d "ui" ]; then echo "Starting UI on http://localhost:3000 ..."; cd ui && npm run dev; fi
+
+demo-cached:
+	COPILOT_DEMO_MODE=cached uvicorn copilot.api.main:app --host 127.0.0.1 --port 8000
+
+demo-fresh:
+	@echo "Dropping seed data and reloading ..."
+	python scripts/load_seed.py --drop-existing
+	@$(MAKE) restart-agent
+
+restart-agent:
+	@pkill -f "uvicorn copilot.api.main:app" || true
+	@sleep 1
+	uvicorn copilot.api.main:app --host 127.0.0.1 --port 8000 --reload &
+	@echo "Agent restarted."
+
+# -----------------------------------------------------------------------------
+# Test
+# -----------------------------------------------------------------------------
+test:
+	pytest
+
+test-unit:
+	pytest tests/unit -v
+
+test-integration:
+	pytest tests/integration -v -m integration
+
+test-security:
+	pytest tests/security -v -m security
+
+test-arch:
+	pytest tests/architecture -v
+
+# -----------------------------------------------------------------------------
+# Quality gates
+# -----------------------------------------------------------------------------
+lint:
+	ruff check src/ tests/
+	ruff format --check src/ tests/
+
+py_format:   ## Alias for OpenMetadata-upstream contributors
+	ruff format src/ tests/
+
+static-checks:   ## Alias for OpenMetadata-upstream contributors (OM uses basedpyright; we use mypy)
+	mypy --strict src/copilot
+
+license-header-check:
+	@python scripts/check_license_headers.py
+
+pre-commit-all:
+	pre-commit run --all-files
+
+ci-local:
+	@$(MAKE) pre-commit-all
+	@$(MAKE) lint
+	@$(MAKE) static-checks
+	@$(MAKE) license-header-check
+	@$(MAKE) test-unit
+	@$(MAKE) test-security
+	@$(MAKE) test-arch
+	pip-audit --strict
+	bandit -r src/copilot -ll
+	@if [ -d "ui" ]; then cd ui && npm run build && npx tsc --noEmit; fi
+	@echo "All CI gates passed locally."
+
+# -----------------------------------------------------------------------------
+# Cleanup
+# -----------------------------------------------------------------------------
+clean:
+	rm -rf build dist *.egg-info .pytest_cache .mypy_cache .ruff_cache htmlcov .coverage coverage.xml
+	find . -type d -name __pycache__ -exec rm -rf {} + 2>/dev/null || true
+	find . -type d -name .ipynb_checkpoints -exec rm -rf {} + 2>/dev/null || true

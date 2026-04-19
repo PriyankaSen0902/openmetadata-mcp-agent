@@ -1,0 +1,4 @@
+{
+  "_comment": "Frozen seed dataset for the demo. Populated in BUILD Phase 2 task P1-13. Will contain 50+ tables across customer_db.public.* including 12 PII-containing tables, 5 lineage-rich tables, 2 prompt-injection-planted tables, and 1 Tier1 critical table. See scripts/load_seed.py for the loader and the internal docs at .idea/Plan/Demo/FailureRecovery.md for the full spec.",
+  "tables": []
+}
