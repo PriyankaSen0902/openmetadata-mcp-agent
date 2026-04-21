@@ -91,7 +91,7 @@ Each row uses the same 8-step lifecycle. Check the boxes inline:
 
 | Task ID | Description                                                   | Issue                                                                       | PR  | P   | B   | V1  | F   | V2  | PR opened | R   | M   |
 | ------- | ------------------------------------------------------------- | --------------------------------------------------------------------------- | --- | --- | --- | --- | --- | --- | --------- | --- | --- |
-| P1-01   | Init repo with `pyproject.toml` and Phase 1 deps              | [#14](https://github.com/GunaPalanivel/openmetadata-mcp-agent/issues/14)    |     | [ ] | [ ] | [ ] | [ ] | [ ] | [ ]       | [ ] | [ ] |
+| P1-01   | Init repo with `pyproject.toml` and Phase 1 deps              | [#14](https://github.com/GunaPalanivel/openmetadata-mcp-agent/issues/14)    |     | [x] | [x] | [x] | [x] | [x] | [x]       | [ ] | [ ] |
 | P1-02   | Create project structure (`src/copilot/...`, `ui/`, `tests/`) | [#15](https://github.com/GunaPalanivel/openmetadata-mcp-agent/issues/15)    |     | [ ] | [ ] | [ ] | [ ] | [ ] | [ ]       | [ ] | [ ] |
 | P1-03   | Implement MCP client `search_metadata` happy path             | [#16](https://github.com/GunaPalanivel/openmetadata-mcp-agent/issues/16)    |     | [ ] | [ ] | [ ] | [ ] | [ ] | [ ]       | [ ] | [ ] |
 | P1-04   | LangGraph agent skeleton (NL -> intent -> tool -> respond)    | [#17](https://github.com/GunaPalanivel/openmetadata-mcp-agent/issues/17)    |     | [ ] | [ ] | [ ] | [ ] | [ ] | [ ]       | [ ] | [ ] |

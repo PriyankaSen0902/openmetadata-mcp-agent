@@ -4,6 +4,10 @@ All notable changes to this project are documented here. Format follows [Keep a 
 
 ## [Unreleased]
 
+### Verified
+
+- **P1-01 / [#14](https://github.com/GunaPalanivel/openmetadata-mcp-agent/issues/14)** — Phase 1 runtime dependencies install clean on Python 3.11.15: `data-ai-sdk[langchain]==0.1.2`, `langgraph==0.2.76`, `langchain-openai==0.2.14`, `fastapi==0.119.1`, `uvicorn[standard]==0.39.0`. All five imports resolve via `pip install -e ".[dev]"`. Feature-Dev spec: [`.idea/Plan/FeatureDev/Phase1Dependencies.md`](.idea/Plan/FeatureDev/Phase1Dependencies.md). Unblocks [#16](https://github.com/GunaPalanivel/openmetadata-mcp-agent/issues/16).
+
 ## [0.1.0] - 2026-04-19
 
 ### Added
