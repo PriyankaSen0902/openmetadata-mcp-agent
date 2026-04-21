@@ -35,6 +35,7 @@ from functools import lru_cache
 from typing import Any
 
 import pybreaker
+from ai_sdk.mcp._client import MCPError  # type: ignore[import-untyped]
 from tenacity import (
     retry,
     retry_if_exception_type,
@@ -46,6 +47,8 @@ from copilot.config import get_settings
 from copilot.middleware.error_envelope import McpAuthFailed, McpUnavailable
 from copilot.observability import get_logger
 from copilot.observability.metrics import agent_mcp_calls_total
+
+__all__ = ["MCPError", "call_tool", "list_tools", "search_metadata"]
 
 log = get_logger(__name__)
 
@@ -163,9 +166,12 @@ def _call_tool_inner(name: str, arguments: dict[str, Any]) -> dict[str, Any]:
         tool_enum = MCPTool(name)
 
     try:
+        # TODO(tech-debt): _make_jsonrpc_request is private SDK API and could break in patch updates
         if tool_enum is not None:
             result = sdk.mcp.call_tool(tool_enum, arguments)
         else:
+            if not hasattr(sdk.mcp, "_make_jsonrpc_request"):
+                raise RuntimeError("data-ai-sdk removed internal _make_jsonrpc_request")
             # Direct JSON-RPC for tools not in the SDK enum (create_metric).
             result_raw = sdk.mcp._make_jsonrpc_request(
                 "tools/call",

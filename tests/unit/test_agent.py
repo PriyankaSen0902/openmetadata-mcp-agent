@@ -101,6 +101,42 @@ class TestClassifyIntent:
         assert result["error"] is not None
 
 
+class TestSelectTools:
+    """Tests for the select_tools node."""
+
+    @patch("copilot.services.agent.openai_client.call_chat_json", new_callable=AsyncMock)
+    async def test_returns_tool_proposals_on_success(
+        self, mock_llm: AsyncMock, base_state: AgentState
+    ) -> None:
+        """LLM successfully selects tools and populates proposals."""
+        from copilot.services.agent import select_tools
+
+        mock_llm.return_value = {
+            "tools": [{"name": "search_metadata", "arguments": {"query": "test"}}],
+            "rationale": "search to find tables",
+        }
+        result = await select_tools(base_state)
+
+        proposals = result["tool_proposals"]
+        assert len(proposals) == 1
+        assert proposals[0]["name"] == "search_metadata"
+        assert proposals[0]["arguments"] == {"query": "test"}
+        assert proposals[0]["rationale"] == "search to find tables"
+
+    @patch("copilot.services.agent.openai_client.call_chat_json", new_callable=AsyncMock)
+    async def test_returns_empty_proposals_on_llm_failure(
+        self, mock_llm: AsyncMock, base_state: AgentState
+    ) -> None:
+        """LLM failure results in empty proposals but does not crash."""
+        from copilot.middleware.error_envelope import LlmUnavailable
+        from copilot.services.agent import select_tools
+
+        mock_llm.side_effect = LlmUnavailable("timeout")
+
+        result = await select_tools(base_state)
+        assert result["tool_proposals"] == []
+
+
 class TestValidateProposal:
     """Tests for the validate_proposal node."""
 
@@ -255,8 +291,31 @@ class TestExecuteTool:
 
         result = await execute_tool(base_state)
 
+        assert result["tool_records"][0]["success"] is False
+        assert result["tool_records"][0]["error_code"] == "om_unavailable"
+
+    @patch("copilot.services.agent.asyncio.to_thread", new_callable=AsyncMock)
+    async def test_records_failure_on_auth_error(
+        self, mock_to_thread: AsyncMock, base_state: AgentState
+    ) -> None:
+        """MCP auth errors are recorded uniquely with om_auth_failed."""
+        from copilot.middleware.error_envelope import McpAuthFailed
+
+        mock_to_thread.side_effect = McpAuthFailed("unauthorized")
+
+        proposal = ToolCallProposal(
+            request_id=uuid4(),
+            tool_name=ToolName.SEARCH_METADATA,
+            arguments={"query": "test"},
+            risk_level=RiskLevel.READ,
+        )
+        base_state["tool_proposals"] = [proposal]
+
+        result = await execute_tool(base_state)
+
         assert len(result["tool_records"]) == 1
         assert result["tool_records"][0]["success"] is False
+        assert result["tool_records"][0]["error_code"] == "om_auth_failed"
 
 
 class TestFormatResponse:

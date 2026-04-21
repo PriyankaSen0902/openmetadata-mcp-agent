@@ -78,8 +78,7 @@ class TestCallTool:
 
     @patch("copilot.clients.om_mcp._get_sdk_client")
     def test_raises_mcp_unavailable_on_sdk_error(self, mock_get_sdk: MagicMock) -> None:
-        """SDK MCPError maps to McpUnavailable."""
-        from ai_sdk.mcp._client import MCPError
+        from copilot.clients.om_mcp import MCPError
 
         mock_get_sdk.return_value = _mock_sdk(side_effect=MCPError("connection refused"))
 
@@ -88,8 +87,7 @@ class TestCallTool:
 
     @patch("copilot.clients.om_mcp._get_sdk_client")
     def test_raises_mcp_auth_failed_on_401(self, mock_get_sdk: MagicMock) -> None:
-        """SDK MCPError containing '401' maps to McpAuthFailed."""
-        from ai_sdk.mcp._client import MCPError
+        from copilot.clients.om_mcp import MCPError
 
         mock_get_sdk.return_value = _mock_sdk(side_effect=MCPError("MCP error: 401 Unauthorized"))
 
@@ -108,8 +106,7 @@ class TestCallTool:
 
     @patch("copilot.clients.om_mcp._get_sdk_client")
     def test_circuit_breaker_opens_after_5_failures(self, mock_get_sdk: MagicMock) -> None:
-        """Circuit breaker opens after 5 consecutive failures."""
-        from ai_sdk.mcp._client import MCPError
+        from copilot.clients.om_mcp import MCPError
 
         # Fresh breaker for this test to avoid pollution
         om_mcp.om_breaker = pybreaker.CircuitBreaker(

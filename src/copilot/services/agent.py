@@ -32,6 +32,7 @@ State machine is per-request (stateless between HTTP calls per architecture).
 
 from __future__ import annotations
 
+import asyncio
 import json
 from datetime import UTC, datetime, timedelta
 from typing import Any, Literal
@@ -43,6 +44,7 @@ from copilot.clients import om_mcp, openai_client
 from copilot.middleware.error_envelope import (
     LlmInvalidOutput,
     LlmUnavailable,
+    McpAuthFailed,
     McpUnavailable,
     ToolNotAllowlisted,
 )
@@ -390,7 +392,9 @@ async def execute_tool(state: AgentState) -> AgentState:
         )
 
         try:
-            result = om_mcp.call_tool(str(proposal.tool_name), proposal.arguments)
+            result = await asyncio.to_thread(
+                om_mcp.call_tool, str(proposal.tool_name), proposal.arguments
+            )
             end = datetime.now(UTC)
             record.completed_at = end
             record.duration_ms = int((end - start).total_seconds() * 1000)
@@ -398,7 +402,20 @@ async def execute_tool(state: AgentState) -> AgentState:
             record.response_summary = _summarize_result(result)
             results.append(result)
 
-        except (McpUnavailable, Exception) as exc:
+        except McpAuthFailed as exc:
+            end = datetime.now(UTC)
+            record.completed_at = end
+            record.duration_ms = int((end - start).total_seconds() * 1000)
+            record.success = False
+            record.error_code = "om_auth_failed"
+            log.warning(
+                "agent.execute_tool.failed",
+                tool=str(proposal.tool_name),
+                error=str(exc),
+            )
+            results.append({"error": str(exc)})
+
+        except McpUnavailable as exc:
             end = datetime.now(UTC)
             record.completed_at = end
             record.duration_ms = int((end - start).total_seconds() * 1000)
@@ -410,6 +427,19 @@ async def execute_tool(state: AgentState) -> AgentState:
                 error=str(exc),
             )
             results.append({"error": str(exc)})
+
+        except Exception as exc:
+            end = datetime.now(UTC)
+            record.completed_at = end
+            record.duration_ms = int((end - start).total_seconds() * 1000)
+            record.success = False
+            record.error_code = "internal_error"
+            log.exception(
+                "agent.execute_tool.failed",
+                tool=str(proposal.tool_name),
+                error=str(exc),
+            )
+            results.append({"error": "Internal error executing tool"})
 
         records.append(record.model_dump(mode="json"))
 
