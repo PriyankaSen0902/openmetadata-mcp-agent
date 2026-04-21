@@ -26,16 +26,46 @@ from copilot.models.chat import (
     ToolCallRecord,
     ToolName,
 )
+from copilot.models.mcp_tools import (
+    CreateGlossaryParams,
+    CreateGlossaryResponse,
+    CreateGlossaryTermParams,
+    CreateGlossaryTermResponse,
+    GetEntityDetailsParams,
+    GetEntityDetailsResponse,
+    GetEntityLineageParams,
+    GetEntityLineageResponse,
+    PatchEntityParams,
+    PatchEntityResponse,
+    SearchMetadataParams,
+    SearchMetadataResponse,
+)
 
 __all__ = [
+    # chat.py
     "ChatSession",
     "ClassificationJob",
+    # mcp_tools.py — Params
+    "CreateGlossaryParams",
+    # mcp_tools.py — Responses
+    "CreateGlossaryResponse",
+    "CreateGlossaryTermParams",
+    "CreateGlossaryTermResponse",
     "ErrorEnvelope",
+    "GetEntityDetailsParams",
+    "GetEntityDetailsResponse",
+    "GetEntityLineageParams",
+    "GetEntityLineageResponse",
     "LineageImpactReport",
     "LineageNode",
+    "PatchEntityParams",
+    "PatchEntityResponse",
     "RiskLevel",
+    "SearchMetadataParams",
+    "SearchMetadataResponse",
     "TagSuggestion",
     "ToolCallProposal",
     "ToolCallRecord",
     "ToolName",
 ]
+

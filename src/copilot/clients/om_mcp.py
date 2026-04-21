@@ -45,10 +45,35 @@ from tenacity import (
 
 from copilot.config import get_settings
 from copilot.middleware.error_envelope import McpAuthFailed, McpUnavailable
+from copilot.models.mcp_tools import (
+    CreateGlossaryParams,
+    CreateGlossaryResponse,
+    CreateGlossaryTermParams,
+    CreateGlossaryTermResponse,
+    GetEntityDetailsParams,
+    GetEntityDetailsResponse,
+    GetEntityLineageParams,
+    GetEntityLineageResponse,
+    PatchEntityParams,
+    PatchEntityResponse,
+    SearchMetadataParams,
+    SearchMetadataResponse,
+)
 from copilot.observability import get_logger
 from copilot.observability.metrics import agent_mcp_calls_total
 
-__all__ = ["MCPError", "call_tool", "list_tools", "search_metadata"]
+__all__ = [
+    "MCPError",
+    "call_tool",
+    "create_glossary_term_typed",
+    "create_glossary_typed",
+    "get_entity_details_typed",
+    "get_entity_lineage_typed",
+    "list_tools",
+    "patch_entity_typed",
+    "search_metadata",
+    "search_metadata_typed",
+]
 
 log = get_logger(__name__)
 
@@ -265,3 +290,144 @@ def search_metadata(
         arguments["limit"] = limit
 
     return call_tool("search_metadata", arguments)
+
+
+# ---------------------------------------------------------------------------
+# Typed wrappers (P1-09: issue #22)
+# ---------------------------------------------------------------------------
+
+
+def search_metadata_typed(params: SearchMetadataParams) -> SearchMetadataResponse:
+    """Search metadata with typed input validation and response parsing.
+
+    Args:
+        params: Validated search parameters.
+
+    Returns:
+        Parsed ``SearchMetadataResponse`` with typed hits.
+
+    Raises:
+        McpUnavailable: On connection / timeout errors.
+        McpAuthFailed: On authentication errors.
+    """
+    raw = call_tool(
+        "search_metadata",
+        params.model_dump(by_alias=True, exclude_none=True),
+    )
+
+    # The OM server returns search hits under various shapes.  Normalise to
+    # the ``hits`` / ``total`` structure our response model expects.
+    hits_raw = raw.get("hits", raw.get("data", []))
+    if isinstance(hits_raw, dict):
+        hits_raw = hits_raw.get("hits", [])
+    total = raw.get("total", raw.get("totalCount", len(hits_raw)))
+
+    return SearchMetadataResponse.model_validate(
+        {"hits": hits_raw, "total": total, **raw},
+    )
+
+
+def get_entity_details_typed(
+    params: GetEntityDetailsParams,
+) -> GetEntityDetailsResponse:
+    """Get entity details with typed input validation and response parsing.
+
+    Args:
+        params: Validated entity lookup parameters.
+
+    Returns:
+        Parsed ``GetEntityDetailsResponse`` with entity fields.
+
+    Raises:
+        McpUnavailable: On connection / timeout errors.
+        McpAuthFailed: On authentication errors.
+    """
+    raw = call_tool(
+        "get_entity_details",
+        params.model_dump(by_alias=True, exclude_none=True),
+    )
+    return GetEntityDetailsResponse.model_validate(raw)
+
+
+def get_entity_lineage_typed(
+    params: GetEntityLineageParams,
+) -> GetEntityLineageResponse:
+    """Get entity lineage with typed input validation and response parsing.
+
+    Args:
+        params: Validated lineage query parameters.
+
+    Returns:
+        Parsed ``GetEntityLineageResponse`` with nodes and edges.
+
+    Raises:
+        McpUnavailable: On connection / timeout errors.
+        McpAuthFailed: On authentication errors.
+    """
+    raw = call_tool(
+        "get_entity_lineage",
+        params.model_dump(by_alias=True, exclude_none=True),
+    )
+    return GetEntityLineageResponse.model_validate(raw)
+
+
+def create_glossary_typed(params: CreateGlossaryParams) -> CreateGlossaryResponse:
+    """Create a glossary with typed input validation and response parsing.
+
+    Args:
+        params: Validated glossary creation parameters.
+
+    Returns:
+        Parsed ``CreateGlossaryResponse`` with the created entity.
+
+    Raises:
+        McpUnavailable: On connection / timeout errors.
+        McpAuthFailed: On authentication errors.
+    """
+    raw = call_tool(
+        "create_glossary",
+        params.model_dump(by_alias=True, exclude_none=True),
+    )
+    return CreateGlossaryResponse.model_validate(raw)
+
+
+def create_glossary_term_typed(
+    params: CreateGlossaryTermParams,
+) -> CreateGlossaryTermResponse:
+    """Create a glossary term with typed input validation and response parsing.
+
+    Args:
+        params: Validated glossary term creation parameters.
+
+    Returns:
+        Parsed ``CreateGlossaryTermResponse`` with the created entity.
+
+    Raises:
+        McpUnavailable: On connection / timeout errors.
+        McpAuthFailed: On authentication errors.
+    """
+    raw = call_tool(
+        "create_glossary_term",
+        params.model_dump(by_alias=True, exclude_none=True),
+    )
+    return CreateGlossaryTermResponse.model_validate(raw)
+
+
+def patch_entity_typed(params: PatchEntityParams) -> PatchEntityResponse:
+    """Patch an entity with typed input validation and response parsing.
+
+    Args:
+        params: Validated entity patch parameters.
+
+    Returns:
+        Parsed ``PatchEntityResponse`` with the updated entity.
+
+    Raises:
+        McpUnavailable: On connection / timeout errors.
+        McpAuthFailed: On authentication errors.
+    """
+    raw = call_tool(
+        "patch_entity",
+        params.model_dump(by_alias=True, exclude_none=True),
+    )
+    return PatchEntityResponse.model_validate(raw)
