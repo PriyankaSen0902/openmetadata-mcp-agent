@@ -20,19 +20,23 @@ cd openmetadata-mcp-agent
 
 ## Step 2: Bring up OpenMetadata
 
-You need a running OpenMetadata instance for the agent to call. The simplest path is the upstream Docker compose:
+You need a running OpenMetadata instance for the agent to call. This repo ships a self-contained Docker Compose stack:
 
 ```bash
-# Get OpenMetadata (sibling directory recommended)
-git clone https://github.com/open-metadata/OpenMetadata.git ../OpenMetadata
-docker compose -f ../OpenMetadata/docker/development/docker-compose.yml up -d
+# One command — starts MySQL, Elasticsearch, and OpenMetadata server
+make om-start
+# Waits for health automatically; prints next steps when ready.
 
-# Wait ~60 seconds, then verify:
+# Verify manually (optional):
 curl http://localhost:8585/api/v1/health
 # Expected: {"status":"healthy"}
 ```
 
-If you already have OpenMetadata running somewhere else, set `AI_SDK_HOST` in your `.env` to point to it.
+This uses `infrastructure/docker-compose.om.yml` (OM v1.6.2, MySQL 8, Elasticsearch 7.16). Total memory: ~6 GB. Make sure Docker Desktop has at least 8 GB allocated (Settings → Resources).
+
+To stop: `make om-stop`. To check health: `make om-health`. To tail logs: `make om-logs`.
+
+If you already have OpenMetadata running somewhere else, skip this step and set `AI_SDK_HOST` in your `.env` to point to it.
 
 ## Step 3: Generate a Bot JWT
 

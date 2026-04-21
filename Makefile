@@ -7,7 +7,9 @@
 # =============================================================================
 
 .DEFAULT_GOAL := help
-.PHONY: help install install_dev_env install_ui install-hooks demo demo-cached demo-fresh \
+.PHONY: help install install_dev_env install_ui install-hooks \
+        om-start om-stop om-health om-logs \
+        demo demo-cached demo-fresh \
         restart-agent test test-unit test-integration test-security test-arch \
         lint py_format static-checks license-header-check pre-commit-all ci-local clean
 
@@ -22,6 +24,12 @@ help:
 	@echo "    make install_dev_env      Alias for 'make install' (matches OM upstream Makefile)"
 	@echo "    make install_ui           Install UI dependencies only"
 	@echo "    make install-hooks        Install + run pre-commit hooks (required before first commit)"
+	@echo ""
+	@echo "  OpenMetadata (local OM at :8585):"
+	@echo "    make om-start            Start OpenMetadata + MySQL + Elasticsearch"
+	@echo "    make om-stop             Stop and remove OpenMetadata containers"
+	@echo "    make om-health           Check if OpenMetadata health endpoint is responding"
+	@echo "    make om-logs             Tail OpenMetadata server logs"
 	@echo ""
 	@echo "  Run:"
 	@echo "    make demo                 Start agent backend + UI for live demo"
@@ -63,6 +71,23 @@ install-hooks:
 	pre-commit install
 	pre-commit run --all-files
 	@echo "Pre-commit hooks installed and clean."
+
+# -----------------------------------------------------------------------------
+# OpenMetadata local instance
+# -----------------------------------------------------------------------------
+om-start:
+	@bash scripts/start_om.sh
+
+om-stop:
+	@echo "Stopping OpenMetadata stack ..."
+	docker compose -f infrastructure/docker-compose.om.yml down
+	@echo "OpenMetadata stopped."
+
+om-health:
+	@curl -sf http://localhost:8585/api/v1/health && echo " ← OM healthy" || echo "OM not reachable at :8585"
+
+om-logs:
+	docker compose -f infrastructure/docker-compose.om.yml logs -f openmetadata-server
 
 # -----------------------------------------------------------------------------
 # Run

@@ -1,0 +1,112 @@
+# =============================================================================
+# docker-compose.om.yml — Local OpenMetadata instance for development
+#
+# Brings up OpenMetadata server + MySQL + Elasticsearch on the host network.
+# The agent backend connects to OM at http://localhost:8585 via AI_SDK_HOST.
+#
+# Usage:
+#   docker compose -f infrastructure/docker-compose.om.yml up -d
+#   curl http://localhost:8585/api/v1/health
+#
+# Memory: total stack stays under 8 GB with the limits below.
+# See also: docs/getting-started.md, .idea/Plan/Validation/SetupGuide.md
+# =============================================================================
+
+services:
+  openmetadata-mysql:
+    image: mysql:8
+    container_name: openmetadata-mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: password
+      MYSQL_USER: openmetadata_user
+      MYSQL_PASSWORD: openmetadata_password
+      MYSQL_DATABASE: openmetadata_db
+    ports:
+      - "3306:3306"
+    volumes:
+      - om-mysql-data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-ppassword"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+
+  openmetadata-elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:7.16.3
+    container_name: openmetadata-elasticsearch
+    restart: unless-stopped
+    environment:
+      discovery.type: single-node
+      ES_JAVA_OPTS: "-Xms512m -Xmx512m"
+      xpack.security.enabled: "false"
+    ports:
+      - "9200:9200"
+      - "9300:9300"
+    volumes:
+      - om-es-data:/usr/share/elasticsearch/data
+    healthcheck:
+      test: ["CMD-SHELL", "curl -s http://localhost:9200/_cluster/health | grep -qE '\"status\":\"(green|yellow)\"'"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+
+  openmetadata-server:
+    image: docker.getcollate.io/openmetadata/server:1.6.2
+    container_name: openmetadata-server
+    restart: unless-stopped
+    depends_on:
+      openmetadata-mysql:
+        condition: service_healthy
+      openmetadata-elasticsearch:
+        condition: service_healthy
+    environment:
+      OPENMETADATA_CLUSTER_NAME: openmetadata
+      SERVER_HOST_API_URL: http://localhost:8585/api
+      SERVER_ADMIN_PORT: "8586"
+      SERVER_PORT: "8585"
+      # MySQL connection
+      DB_DRIVER_CLASS: com.mysql.cj.jdbc.Driver
+      DB_SCHEME: mysql
+      DB_HOST: openmetadata-mysql
+      DB_PORT: "3306"
+      DB_USER: openmetadata_user
+      DB_USER_PASSWORD: openmetadata_password
+      DB_NAME: openmetadata_db
+      # Elasticsearch connection
+      SEARCH_TYPE: elasticsearch
+      ELASTICSEARCH_HOST: openmetadata-elasticsearch
+      ELASTICSEARCH_PORT: "9200"
+      ELASTICSEARCH_SCHEME: http
+      # Airflow disabled (not needed for agent development)
+      PIPELINE_SERVICE_CLIENT_ENABLED: "false"
+      PIPELINE_SERVICE_CLIENT_CLASS_NAME: "org.openmetadata.service.clients.pipeline.noop.NoopClient"
+    ports:
+      - "8585:8585"
+      - "8586:8586"
+    healthcheck:
+      test: ["CMD-SHELL", "curl -s http://localhost:8585/api/v1/health | grep -q healthy || exit 1"]
+      interval: 15s
+      timeout: 10s
+      retries: 20
+      start_period: 60s
+    deploy:
+      resources:
+        limits:
+          memory: 4G
+
+volumes:
+  om-mysql-data:
+    driver: local
+  om-es-data:
+    driver: local
