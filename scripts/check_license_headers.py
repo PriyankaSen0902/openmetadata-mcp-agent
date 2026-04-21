@@ -20,6 +20,7 @@ ROOT = Path(__file__).resolve().parent.parent
 # Files we check — Python + TS + JS source. Skip generated/vendored content.
 SOURCE_PATTERNS = ["*.py", "*.ts", "*.tsx", "*.js", "*.jsx"]
 SKIP_PATH_PARTS = {
+    ".git",
     ".idea",
     ".cursor",
     ".claude",

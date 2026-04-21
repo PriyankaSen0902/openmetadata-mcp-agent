@@ -17,6 +17,8 @@ import pytest
 
 from copilot.services.prompt_safety import is_suspicious, neutralize
 
+pytestmark = pytest.mark.security
+
 
 class TestPattern1IgnorePrevious:
     """Classic 'ignore previous instructions' override attempt."""

@@ -1,0 +1,21 @@
+# Enforce consistent line endings across platforms.
+# Default: auto-detect text vs binary, normalize text to LF on commit.
+* text=auto eol=lf
+
+# Source files must be LF so ruff / pre-commit / CI agree across Win/WSL/macOS.
+*.py    text eol=lf
+*.ts    text eol=lf
+*.tsx   text eol=lf
+*.js    text eol=lf
+*.jsx   text eol=lf
+*.json  text eol=lf
+*.yml   text eol=lf
+*.yaml  text eol=lf
+*.md    text eol=lf
+*.toml  text eol=lf
+*.cfg   text eol=lf
+*.ini   text eol=lf
+Makefile text eol=lf
+
+# Shell scripts and pre-commit hooks must be LF to execute.
+*.sh    text eol=lf
