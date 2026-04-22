@@ -38,7 +38,7 @@ from datetime import UTC, datetime, timedelta
 from typing import Any, Literal
 from uuid import UUID, uuid4
 
-from langgraph.graph import END, StateGraph  # type: ignore[import-untyped]
+from langgraph.graph import END, StateGraph
 from typing_extensions import TypedDict
 
 from copilot.clients import om_mcp, openai_client

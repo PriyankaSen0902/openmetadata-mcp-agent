@@ -35,6 +35,7 @@ from __future__ import annotations
 
 import contextlib
 import time
+from collections.abc import Callable
 from functools import lru_cache
 from typing import Any, cast
 
@@ -83,7 +84,7 @@ log = get_logger(__name__)
 
 # data-ai-sdk hardcodes POST "/mcp" in MCPClient._make_jsonrpc_request. Some OM builds
 # return 405 there; OM_MCP_HTTP_PATH (see Settings.om_mcp_http_path) overrides the path.
-_mcp_jsonrpc_original: Any = None
+_mcp_jsonrpc_original: Callable[..., Any] | None = None
 _mcp_jsonrpc_patched: bool = False
 
 
@@ -93,7 +94,7 @@ def _reset_mcp_jsonrpc_path_patch_for_tests() -> None:
     if _mcp_jsonrpc_original is not None:
         from ai_sdk.mcp import _client as mcp_client_mod  # type: ignore[unused-ignore]
 
-        mcp_client_mod.MCPClient._make_jsonrpc_request = _mcp_jsonrpc_original
+        mcp_client_mod.MCPClient._make_jsonrpc_request = _mcp_jsonrpc_original  # type: ignore[method-assign]
     _mcp_jsonrpc_original = None
     _mcp_jsonrpc_patched = False
     _get_sdk_client.cache_clear()
@@ -113,7 +114,9 @@ def _ensure_mcp_jsonrpc_uses_configured_path() -> None:
 
     _mcp_jsonrpc_original = mcp_client_mod.MCPClient._make_jsonrpc_request
 
-    def _patched_make_jsonrpc_request(self: Any, method: str, params: dict | None = None) -> dict:
+    def _patched_make_jsonrpc_request(
+        self: Any, method: str, params: dict[str, Any] | None = None
+    ) -> dict[str, Any]:
         path = get_settings().om_mcp_http_path
         request_id = str(uuid.uuid4())[:8]
         payload = {
@@ -130,9 +133,9 @@ def _ensure_mcp_jsonrpc_uses_configured_path() -> None:
         if "error" in result:
             raise MCPError(f"MCP error: {result['error'].get('message', 'Unknown error')}")
 
-        return result.get("result", {})
+        return cast(dict[str, Any], result.get("result", {}))
 
-    mcp_client_mod.MCPClient._make_jsonrpc_request = _patched_make_jsonrpc_request
+    mcp_client_mod.MCPClient._make_jsonrpc_request = _patched_make_jsonrpc_request  # type: ignore[method-assign]
     _mcp_jsonrpc_patched = True
 
 
