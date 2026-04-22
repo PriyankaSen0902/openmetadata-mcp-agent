@@ -32,7 +32,7 @@ from __future__ import annotations
 import contextlib
 import time
 from functools import lru_cache
-from typing import Any
+from typing import Any, cast
 
 import pybreaker
 from ai_sdk.mcp._client import MCPError  # type: ignore[attr-defined, unused-ignore]
@@ -165,8 +165,6 @@ def call_tool(name: str, arguments: dict[str, Any]) -> dict[str, Any]:
     elapsed_ms = int((time.monotonic() - start) * 1000)
     log.info("om.call_tool.complete", tool=name, elapsed_ms=elapsed_ms)
     agent_mcp_calls_total.labels(tool_name=name, outcome="ok").inc()
-    from typing import cast
-
     return cast(dict[str, Any], result)
 
 
