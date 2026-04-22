@@ -68,7 +68,7 @@ def _api_request(
 
     for attempt in range(1, MAX_RETRIES + 1):
         try:
-            req = urllib.request.Request(url, data=body, headers=headers or {}, method=method)
+            req = urllib.request.Request(url, data=body, headers=headers or {}, method=method)  # noqa: S310
             with urllib.request.urlopen(req, timeout=10) as resp:  # noqa: S310
                 return json.loads(resp.read().decode("utf-8"))
         except urllib.error.HTTPError as exc:
@@ -121,8 +121,7 @@ def _build_column_payload(col_def: dict[str, Any]) -> dict[str, Any]:
     tags = col_def.get("tags", [])
     if tags:
         column["tags"] = [
-            {"tagFQN": tag, "source": "Classification", "labelType": "Manual"}
-            for tag in tags
+            {"tagFQN": tag, "source": "Classification", "labelType": "Manual"} for tag in tags
         ]
     return column
 
@@ -242,8 +241,7 @@ def main() -> int:
         tags = table_def.get("tags", [])
         if tags:
             tbl_payload["tags"] = [
-                {"tagFQN": tag, "source": "Classification", "labelType": "Manual"}
-                for tag in tags
+                {"tagFQN": tag, "source": "Classification", "labelType": "Manual"} for tag in tags
             ]
 
         result = _get_or_create(base_url, "tables", tbl_payload, headers)

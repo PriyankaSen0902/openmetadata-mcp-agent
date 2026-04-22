@@ -45,6 +45,45 @@ def check_url(url: str, expected_key: str) -> bool:
     return True
 
 
+def check_chat(url: str) -> bool:
+    req = urllib.request.Request(  # noqa: S310
+        url,
+        data=json.dumps({"message": "show me some tables"}).encode("utf-8"),
+        headers={"Content-Type": "application/json"},
+        method="POST",
+    )
+    try:
+        with urllib.request.urlopen(req, timeout=30) as response:  # noqa: S310
+            body = response.read().decode("utf-8")
+    except (urllib.error.URLError, TimeoutError) as exc:
+        print(f"FAIL: {url} unreachable or error: {exc}", file=sys.stderr)
+        # Try to read the error body if it's an HTTPError
+        if hasattr(exc, "read"):
+            print(f"Error body: {exc.read().decode('utf-8')[:500]}", file=sys.stderr)
+        return False
+
+    try:
+        data = json.loads(body)
+    except json.JSONDecodeError:
+        print(f"FAIL: {url} returned non-JSON: {body[:200]}", file=sys.stderr)
+        return False
+
+    if "response" not in data or not data["response"]:
+        print(f"FAIL: {url} missing or empty 'response': {data}", file=sys.stderr)
+        return False
+
+    audit_log = data.get("audit_log", [])
+    if not any(entry.get("success") is True for entry in audit_log):
+        print(f"FAIL: {url} audit_log missing a successful entry: {audit_log}", file=sys.stderr)
+        return False
+
+    print(f"OK: {url}  (agent responded and recorded a successful tool call)")
+    print("--- Agent Response ---")
+    print(data["response"])
+    print("----------------------")
+    return True
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description="Demo-day smoke test.")
     parser.add_argument("--agent-url", default="http://127.0.0.1:8000")
@@ -62,6 +101,10 @@ def main() -> int:
         print("smoke: openmetadata server ...")
         if not check_url(f"{args.om_url}/api/v1/system/version", "version"):
             return 2
+
+        print("smoke: agent chat endpoint ...")
+        if not check_chat(f"{args.agent_url}/api/v1/chat"):
+            return 3
 
     print("smoke: all green")
     return 0

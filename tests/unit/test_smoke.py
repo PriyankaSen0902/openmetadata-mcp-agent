@@ -8,6 +8,8 @@
 
 from __future__ import annotations
 
+from unittest.mock import AsyncMock, patch
+
 from fastapi.testclient import TestClient
 
 
@@ -62,12 +64,36 @@ class TestMetricsEndpoint:
         assert "text/plain" in response.headers["content-type"]
 
 
-class TestChatStub:
-    def test_chat_returns_not_implemented_envelope(self, client: TestClient) -> None:
-        response = client.post("/api/v1/chat", json={"message": "hello"})
-        assert response.status_code == 501
+class TestChatRoute:
+    @patch("copilot.api.chat.run_chat_turn", new_callable=AsyncMock)
+    def test_chat_forwards_request_id_to_agent(
+        self, mock_run_chat_turn: AsyncMock, client: TestClient
+    ) -> None:
+        request_id = "fddf6e8c-a479-4b9c-8b74-5dfcc0e57035"
+        mock_run_chat_turn.return_value = {
+            "request_id": request_id,
+            "session_id": "ef11cf79-d79f-435c-9630-dd405dbbe21d",
+            "response": "Found matching tables.",
+            "response_format": "markdown",
+            "audit_log": [{"tool_name": "semantic_search", "duration_ms": 12, "success": True}],
+            "tokens_used": {"prompt": 10, "completion": 5},
+            "ts": "2026-04-22T15:00:00+00:00",
+        }
+
+        response = client.post(
+            "/api/v1/chat",
+            headers={"X-Request-Id": request_id},
+            json={"message": "show me some tables"},
+        )
+
+        assert response.status_code == 200
         body = response.json()
-        assert body["code"] == "not_implemented"
-        assert "request_id" in body
-        assert "ts" in body
-        assert "secret" not in body["message"].lower()  # SC-8: no secrets in errors
+        assert response.headers["X-Request-Id"] == request_id
+        assert body["request_id"] == request_id
+        assert body["response"] == "Found matching tables."
+
+        mock_run_chat_turn.assert_awaited_once()
+        kwargs = mock_run_chat_turn.await_args.kwargs
+        assert kwargs["user_message"] == "show me some tables"
+        assert kwargs["session_id"] is None
+        assert str(kwargs["request_id"]) == request_id

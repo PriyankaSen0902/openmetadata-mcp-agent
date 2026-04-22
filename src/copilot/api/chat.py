@@ -10,15 +10,15 @@
 #  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 #  See the License for the specific language governing permissions and
 #  limitations under the License.
-"""Chat routes - stubbed in Phase 1; functional in Phase 2.
+"""Chat routes for the public API surface.
 
 Per .idea/Plan/Architecture/APIContract.md:
   POST /api/v1/chat            user submits NL message
   POST /api/v1/chat/confirm    user accepts/rejects pending write proposal
   POST /api/v1/chat/cancel     user clears the session
 
-All routes return the structured ErrorEnvelope (code=NOT_IMPLEMENTED) until
-P1-04 wires the LangGraph agent.
+POST /api/v1/chat is functional in Phase 2; confirm remains stubbed until
+P2-12 wires the write-confirmation flow.
 """
 
 from __future__ import annotations
@@ -32,6 +32,7 @@ from pydantic import BaseModel, Field
 
 from copilot.middleware.error_envelope import _envelope
 from copilot.models.chat import ErrorCode
+from copilot.services.agent import run_chat_turn
 
 router = APIRouter(tags=["chat"])
 
@@ -58,13 +59,15 @@ class ChatCancelRequest(BaseModel):
 
 
 @router.post("/chat", summary="Submit a chat message")
-async def post_chat(request: Request, _body: ChatRequest) -> JSONResponse:
-    """TODO P1-04: wire to services.agent.run_chat_turn().
-
-    For now, returns a structured 'not_implemented' envelope so clients
-    integrate the error-envelope path before the happy path lands.
-    """
-    return _envelope(ErrorCode.NOT_IMPLEMENTED, request)
+async def post_chat(request: Request, body: ChatRequest) -> JSONResponse:
+    """Execute a chat turn through the agent pipeline."""
+    request_id = getattr(request.state, "request_id", None)
+    result = await run_chat_turn(
+        user_message=body.message,
+        session_id=str(body.session_id) if body.session_id else None,
+        request_id=request_id,
+    )
+    return JSONResponse(status_code=200, content=result)
 
 
 @router.post("/chat/confirm", summary="Confirm a pending write proposal")

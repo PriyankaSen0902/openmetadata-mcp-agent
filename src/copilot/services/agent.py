@@ -39,6 +39,7 @@ from typing import Any, Literal
 from uuid import UUID, uuid4
 
 from langgraph.graph import END, StateGraph  # type: ignore[import-untyped]
+from typing_extensions import TypedDict
 
 from copilot.clients import om_mcp, openai_client
 from copilot.middleware.error_envelope import (
@@ -82,17 +83,36 @@ VALID_INTENTS = frozenset(INTENT_DESCRIPTIONS.keys())
 # =============================================================================
 
 
-class AgentState(dict[str, Any]):
+class AgentState(TypedDict, total=False):
     """LangGraph state dict for a single chat turn.
 
     Fields mirror ChatSession but are stored as plain dict keys for
     LangGraph compatibility.
     """
 
+    request_id: str
+    session_id: str
+    user_message: str
+    intent: str | None
+    tool_proposals: list[Any]
+    tool_results: list[Any]
+    tool_records: list[Any]
+    pending_confirmation: dict[str, Any] | None
+    final_response: str | None
+    tokens_prompt: int
+    tokens_completion: int
+    error: str | None
 
-def _initial_state(user_message: str, session_id: str | None = None) -> AgentState:
+
+def _initial_state(
+    user_message: str,
+    session_id: str | None = None,
+    request_id: UUID | str | None = None,
+) -> AgentState:
     """Create the initial state for a new chat turn."""
-    rid = uuid4()
+    rid = (
+        request_id if isinstance(request_id, UUID) else UUID(request_id) if request_id else uuid4()
+    )
     sid = UUID(session_id) if session_id else uuid4()
     return AgentState(
         request_id=str(rid),
@@ -592,21 +612,27 @@ def _get_compiled_graph() -> Any:
 async def run_chat_turn(
     user_message: str,
     session_id: str | None = None,
+    request_id: UUID | str | None = None,
 ) -> dict[str, Any]:
     """Execute one chat turn through the full agent pipeline.
 
     Args:
         user_message: The user's natural-language message.
         session_id: Optional session ID for continuity.
+        request_id: Optional HTTP request ID to preserve end-to-end tracing.
 
     Returns:
         Dict with keys: ``request_id``, ``session_id``, ``response``,
         ``response_format``, ``pending_confirmation``, ``audit_log``,
         ``tokens_used``, ``ts``.
     """
-    log.info("agent.run_chat_turn.start", session_id=session_id)
+    log.info(
+        "agent.run_chat_turn.start",
+        session_id=session_id,
+        request_id=str(request_id) if request_id else None,
+    )
 
-    state = _initial_state(user_message, session_id)
+    state = _initial_state(user_message, session_id, request_id=request_id)
     graph = _get_compiled_graph()
     final_state = await graph.ainvoke(state)
 

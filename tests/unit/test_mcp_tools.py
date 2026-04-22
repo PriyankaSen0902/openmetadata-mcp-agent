@@ -374,8 +374,14 @@ class TestSearchMetadataTyped:
 
         mock_call.assert_called_once_with(
             "search_metadata",
-            {"query": "users", "entityType": "table", "size": 5, "from": 0,
-             "includeDeleted": False, "includeAggregations": False},
+            {
+                "query": "users",
+                "entityType": "table",
+                "size": 5,
+                "from": 0,
+                "includeDeleted": False,
+                "includeAggregations": False,
+            },
         )
         assert isinstance(result, SearchMetadataResponse)
         assert result.total == 1

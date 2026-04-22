@@ -10,14 +10,14 @@
 #  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 #  See the License for the specific language governing permissions and
 #  limitations under the License.
-"""FastAPI app factory + /healthz + /metrics + /chat (stub).
+"""FastAPI app factory + /healthz + /metrics + /chat.
 
 Per .idea/Plan/Architecture/APIContract.md:
   - GET  /api/v1/healthz   functional in Phase 1 (boots without dependencies)
   - GET  /api/v1/metrics   functional in Phase 1 (Prometheus text format)
-  - POST /api/v1/chat      stubbed; returns 501 not_implemented envelope until P1-04
-  - POST /api/v1/chat/confirm  stubbed; same
-  - POST /api/v1/chat/cancel   stubbed; same
+  - POST /api/v1/chat      functional in Phase 2 via the LangGraph agent
+  - POST /api/v1/chat/confirm  stubbed until P2-12
+  - POST /api/v1/chat/cancel   no-op cancel until sessions are stateful
 """
 
 from __future__ import annotations

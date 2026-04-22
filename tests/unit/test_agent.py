@@ -38,6 +38,7 @@ from copilot.services.agent import (
     execute_tool,
     format_response,
     hitl_gate,
+    run_chat_turn,
     validate_proposal,
 )
 
@@ -352,3 +353,29 @@ class TestFormatResponse:
 
         assert result["final_response"] is not None
         assert "Result 1" in result["final_response"]
+
+
+class TestRunChatTurn:
+    @patch("copilot.services.agent._get_compiled_graph")
+    async def test_preserves_supplied_request_id(self, mock_get_graph: Any) -> None:
+        """Provided request IDs are preserved through the API response."""
+        request_id = uuid4()
+        session_id = uuid4()
+        mock_graph = AsyncMock()
+        mock_graph.ainvoke.return_value = {
+            "request_id": str(request_id),
+            "session_id": str(session_id),
+            "final_response": "Done.",
+            "tool_records": [],
+            "tokens_prompt": 0,
+            "tokens_completion": 0,
+        }
+        mock_get_graph.return_value = mock_graph
+
+        result = await run_chat_turn("show me tables", request_id=request_id)
+
+        assert result["request_id"] == str(request_id)
+        assert result["session_id"] == str(session_id)
+        mock_graph.ainvoke.assert_awaited_once()
+        initial_state = mock_graph.ainvoke.await_args.args[0]
+        assert initial_state["request_id"] == str(request_id)

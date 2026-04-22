@@ -17,12 +17,9 @@ Mocks urllib to verify the script sends correct API requests.
 
 from __future__ import annotations
 
-import json
 import sys
 from pathlib import Path
-from unittest.mock import MagicMock, patch
-
-import pytest
+from unittest.mock import patch
 
 ROOT = Path(__file__).resolve().parent.parent.parent
 sys.path.insert(0, str(ROOT / "scripts"))
@@ -39,7 +36,7 @@ class TestLoadSeedImport:
         import load_seed
 
         expected = ROOT / "seed" / "customer_db.json"
-        assert load_seed.SEED_FILE == expected
+        assert expected == load_seed.SEED_FILE
 
     def test_seed_file_exists(self):
         import load_seed
@@ -63,7 +60,12 @@ class TestBuildColumnPayload:
         import load_seed
 
         result = load_seed._build_column_payload(
-            {"name": "email", "dataType": "VARCHAR", "description": "Email", "tags": ["PII.Sensitive"]}
+            {
+                "name": "email",
+                "dataType": "VARCHAR",
+                "description": "Email",
+                "tags": ["PII.Sensitive"],
+            }
         )
         assert result["name"] == "email"
         assert len(result["tags"]) == 1

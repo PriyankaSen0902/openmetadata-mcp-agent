@@ -78,11 +78,7 @@ class TestSeedStructure:
 
 class TestPiiTables:
     def _pii_tables(self, tables):
-        return [
-            t
-            for t in tables
-            if any(tag for c in t["columns"] for tag in c.get("tags", []))
-        ]
+        return [t for t in tables if any(tag for c in t["columns"] for tag in c.get("tags", []))]
 
     def test_minimum_pii_table_count(self, tables):
         pii = self._pii_tables(tables)
@@ -97,8 +93,7 @@ class TestPiiTables:
             for col in table["columns"]:
                 for tag in col.get("tags", []):
                     assert "PII" in tag, (
-                        f"Tag '{tag}' on '{table['name']}.{col['name']}' "
-                        f"doesn't contain 'PII'"
+                        f"Tag '{tag}' on '{table['name']}.{col['name']}' doesn't contain 'PII'"
                     )
 
 
@@ -118,8 +113,7 @@ class TestPromptInjection:
                 descriptions_all += c.get("description", "")
 
         assert "ignore" in descriptions_all.lower() or "\u200b" in descriptions_all, (
-            "Prompt-injection tables should contain injection patterns "
-            "in column descriptions"
+            "Prompt-injection tables should contain injection patterns in column descriptions"
         )
 
 

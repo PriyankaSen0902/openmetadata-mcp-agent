@@ -42,6 +42,8 @@ Response 200 (read-only flow completed):
 }
 ```
 
+For the same call, the JSON `request_id` matches the `X-Request-Id` response header.
+
 Response 200 (write flow needs confirmation):
 
 ```json
@@ -59,8 +61,6 @@ Response 200 (write flow needs confirmation):
   "ts": "..."
 }
 ```
-
-Phase 1 status: returns `501 not_implemented` envelope until P1-04 wires the LangGraph agent.
 
 ### `POST /api/v1/chat/confirm`
 

@@ -1,4 +1,4 @@
-﻿{
+{
     "tables":  [
                    {
                        "description":  "Core customer master table with PII fields",
