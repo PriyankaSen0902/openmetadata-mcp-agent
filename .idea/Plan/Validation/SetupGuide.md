@@ -2,30 +2,31 @@
 
 ## Prerequisites
 
-| Tool | Version | Install |
-|------|---------|---------|
-| Python | 3.11+ | [python.org](https://python.org) |
-| Node.js | 18+ | [nodejs.org](https://nodejs.org) |
-| Docker | 24+ | [docker.com](https://docker.com) |
-| Git | 2.30+ | System default |
+| Tool    | Version | Install                          |
+| ------- | ------- | -------------------------------- |
+| Python  | 3.11+   | [python.org](https://python.org) |
+| Node.js | 18+     | [nodejs.org](https://nodejs.org) |
+| Docker  | 24+     | [docker.com](https://docker.com) |
+| Git     | 2.30+   | System default                   |
 
 ## Step 1: Clone the Repository
 
 ```bash
-git clone https://github.com/GunaPalanivel/OpenMetadata.git
-cd OpenMetadata
+git clone https://github.com/GunaPalanivel/openmetadata-mcp-agent.git
+cd openmetadata-mcp-agent
 ```
 
 ## Step 2: Start OpenMetadata (Docker)
 
 ```bash
-# From the project root
-docker compose -f docker/development/docker-compose.yml up -d
+# From this repo root (OM 1.6.2 + MySQL + Elasticsearch; migrate runs before server)
+make om-start
+# or: bash scripts/start_om.sh
 
 # Wait for OM to be ready (check health)
-curl http://localhost:8585/api/v1/health
+curl -s http://localhost:8585/api/v1/system/version
 
-# Expected: {"status":"healthy"}
+# Expected: JSON with a "version" field
 ```
 
 ## Step 3: Generate Bot JWT Token
@@ -98,9 +99,9 @@ uvicorn copilot.api:app --reload --port 8000
 
 ## Troubleshooting
 
-| Issue | Fix |
-|-------|-----|
-| OM Docker fails to start | Check Docker Desktop is running, increase RAM to 8GB |
-| JWT token expired | Re-generate from Settings → Bots |
-| MCP connection refused | Verify OM is healthy: `curl localhost:8585/api/v1/health` |
-| UI can't connect | Check API URL in `.env` matches backend port |
+| Issue                    | Fix                                                       |
+| ------------------------ | --------------------------------------------------------- |
+| OM Docker fails to start | Check Docker Desktop is running, increase RAM to 8GB      |
+| JWT token expired        | Re-generate from Settings → Bots                          |
+| MCP connection refused   | Verify OM is up: `curl -s localhost:8585/api/v1/system/version` or `curl -sf localhost:8586/healthcheck` |
+| UI can't connect         | Check API URL in `.env` matches backend port              |

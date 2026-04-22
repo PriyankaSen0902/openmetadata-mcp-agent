@@ -20,7 +20,8 @@
 set -euo pipefail
 
 COMPOSE_FILE="infrastructure/docker-compose.om.yml"
-HEALTH_URL="http://localhost:8585/api/v1/health"
+# OpenMetadata 1.6.x: use admin Dropwizard healthcheck (API /api/v1/health is not exposed on this image).
+HEALTH_URL="http://localhost:8586/healthcheck"
 MAX_RETRIES=40
 RETRY_INTERVAL=5
 
@@ -61,7 +62,7 @@ start_stack() {
 wait_for_health() {
     local attempt=1
     while [ "${attempt}" -le "${MAX_RETRIES}" ]; do
-        if curl -sf "${HEALTH_URL}" 2>/dev/null | grep -q "healthy"; then
+        if curl -sf "${HEALTH_URL}" >/dev/null 2>&1; then
             echo ""
             info "OpenMetadata is healthy at ${HEALTH_URL}"
             return 0
@@ -74,7 +75,12 @@ wait_for_health() {
 
     echo ""
     error "OpenMetadata did not become healthy after $((MAX_RETRIES * RETRY_INTERVAL))s."
-    error "Check logs: docker compose -f ${COMPOSE_FILE} logs openmetadata-server"
+    error "Compose status:"
+    docker compose -f "${COMPOSE_FILE}" ps -a || true
+    error "Last migrate job logs (schema bootstrap must exit 0 before server starts):"
+    docker compose -f "${COMPOSE_FILE}" logs --tail 120 openmetadata-migrate 2>/dev/null || true
+    error "Last server logs:"
+    docker compose -f "${COMPOSE_FILE}" logs --tail 120 openmetadata-server 2>/dev/null || true
     exit 1
 }
 

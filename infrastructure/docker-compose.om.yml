@@ -6,7 +6,7 @@
 #
 # Usage:
 #   docker compose -f infrastructure/docker-compose.om.yml up -d
-#   curl http://localhost:8585/api/v1/health
+#   curl -s http://localhost:8585/api/v1/system/version
 #
 # Memory: total stack stays under 8 GB with the limits below.
 # See also: docs/getting-started.md, .idea/Plan/Validation/SetupGuide.md
@@ -61,10 +61,13 @@ services:
         limits:
           memory: 1G
 
-  openmetadata-server:
+  # One-shot Flyway/schema bootstrap (matches upstream quickstart execute-migrate-all).
+  # Without this, the server starts against an empty DB and crash-loops (missing Flowable tables).
+  openmetadata-migrate:
     image: docker.getcollate.io/openmetadata/server:1.6.2
-    container_name: openmetadata-server
-    restart: unless-stopped
+    container_name: openmetadata-migrate
+    restart: "no"
+    command: "./bootstrap/openmetadata-ops.sh migrate"
     depends_on:
       openmetadata-mysql:
         condition: service_healthy
@@ -75,13 +78,48 @@ services:
       SERVER_HOST_API_URL: http://localhost:8585/api
       SERVER_ADMIN_PORT: "8586"
       SERVER_PORT: "8585"
-      # MySQL connection
+      MIGRATION_LIMIT_PARAM: "1200"
       DB_DRIVER_CLASS: com.mysql.cj.jdbc.Driver
       DB_SCHEME: mysql
+      DB_PARAMS: allowPublicKeyRetrieval=true&useSSL=false&serverTimezone=UTC
       DB_HOST: openmetadata-mysql
       DB_PORT: "3306"
       DB_USER: openmetadata_user
       DB_USER_PASSWORD: openmetadata_password
+      OM_DATABASE: openmetadata_db
+      DB_NAME: openmetadata_db
+      SEARCH_TYPE: elasticsearch
+      ELASTICSEARCH_HOST: openmetadata-elasticsearch
+      ELASTICSEARCH_PORT: "9200"
+      ELASTICSEARCH_SCHEME: http
+      PIPELINE_SERVICE_CLIENT_ENABLED: "false"
+      PIPELINE_SERVICE_CLIENT_CLASS_NAME: org.openmetadata.service.clients.pipeline.noop.NoopClient
+
+  openmetadata-server:
+    image: docker.getcollate.io/openmetadata/server:1.6.2
+    container_name: openmetadata-server
+    restart: unless-stopped
+    depends_on:
+      openmetadata-mysql:
+        condition: service_healthy
+      openmetadata-elasticsearch:
+        condition: service_healthy
+      openmetadata-migrate:
+        condition: service_completed_successfully
+    environment:
+      OPENMETADATA_CLUSTER_NAME: openmetadata
+      SERVER_HOST_API_URL: http://localhost:8585/api
+      SERVER_ADMIN_PORT: "8586"
+      SERVER_PORT: "8585"
+      # MySQL connection
+      DB_DRIVER_CLASS: com.mysql.cj.jdbc.Driver
+      DB_SCHEME: mysql
+      DB_PARAMS: allowPublicKeyRetrieval=true&useSSL=false&serverTimezone=UTC
+      DB_HOST: openmetadata-mysql
+      DB_PORT: "3306"
+      DB_USER: openmetadata_user
+      DB_USER_PASSWORD: openmetadata_password
+      OM_DATABASE: openmetadata_db
       DB_NAME: openmetadata_db
       # Elasticsearch connection
       SEARCH_TYPE: elasticsearch
@@ -95,7 +133,8 @@ services:
       - "8585:8585"
       - "8586:8586"
     healthcheck:
-      test: ["CMD-SHELL", "curl -s http://localhost:8585/api/v1/health | grep -q healthy || exit 1"]
+      # OM 1.6.x Dropwizard admin port (see upstream quickstart); /api/v1/health is not registered here.
+      test: ["CMD-SHELL", "curl -sf http://localhost:8586/healthcheck >/dev/null || exit 1"]
       interval: 15s
       timeout: 10s
       retries: 20

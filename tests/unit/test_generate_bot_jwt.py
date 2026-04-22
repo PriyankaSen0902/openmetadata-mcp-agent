@@ -77,7 +77,7 @@ class TestResolveExpiry:
 class TestCheckHealth:
     @patch("generate_bot_jwt.urllib.request.urlopen")
     def test_healthy_server(self, mock_urlopen: MagicMock) -> None:
-        mock_urlopen.return_value = _mock_response({"status": "healthy"})
+        mock_urlopen.return_value = _mock_response({"version": "1.6.2"})
         assert generate_bot_jwt.check_health("http://localhost:8585") is True
 
     @patch("generate_bot_jwt.urllib.request.urlopen")

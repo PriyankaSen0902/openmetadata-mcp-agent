@@ -63,20 +63,22 @@ Mitigate (1 minute):
 
 ## Failure mode 3: OpenMetadata Docker crashes / unhealthy
 
-Symptom: `curl http://localhost:8585/api/v1/health` hangs or returns 5xx.
+Symptom: `curl http://localhost:8586/healthcheck` fails or `curl http://localhost:8585/api/v1/system/version` hangs or returns 5xx.
 
 Diagnose:
 
 ```bash
-docker compose -f infrastructure/docker-compose.yml ps
-docker logs openmetadata_server --tail 100
+docker compose -f infrastructure/docker-compose.om.yml ps -a
+docker compose -f infrastructure/docker-compose.om.yml logs --tail 100 openmetadata-migrate
+docker compose -f infrastructure/docker-compose.om.yml logs --tail 100 openmetadata-server
 ```
 
 Mitigate:
 
 - If OOM: increase Docker Desktop memory to 10 GB; restart compose
 - If port 8585 conflict: `lsof -i :8585`, kill the offender, restart compose
-- If MySQL is the broken dep: `docker compose restart openmetadata_mysql`, wait 30s, then `docker compose restart openmetadata_server`
+- If MySQL is the broken dep: `docker compose -f infrastructure/docker-compose.om.yml restart openmetadata-mysql`, wait 30s, then `docker compose -f infrastructure/docker-compose.om.yml up -d` (re-runs migrate if needed)
+- If migrate failed (empty DB / missing tables): `docker compose -f infrastructure/docker-compose.om.yml down -v` then `make om-start` for a clean bootstrap
 - If unrecoverable in 3 min: switch to backup demo machine
 
 ---

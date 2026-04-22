@@ -28,8 +28,8 @@ make om-start
 # Waits for health automatically; prints next steps when ready.
 
 # Verify manually (optional):
-curl http://localhost:8585/api/v1/health
-# Expected: {"status":"healthy"}
+curl -s http://localhost:8585/api/v1/system/version
+# Expected JSON includes "version"; admin liveness: curl -sf http://localhost:8586/healthcheck
 ```
 
 This uses `infrastructure/docker-compose.om.yml` (OM v1.6.2, MySQL 8, Elasticsearch 7.16). Total memory: ~6 GB. Make sure Docker Desktop has at least 8 GB allocated (Settings → Resources).

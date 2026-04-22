@@ -96,16 +96,20 @@ def _resolve_expiry(days: int) -> str:
 
 
 def check_health(base_url: str) -> bool:
-    """Verify the OM server is reachable and healthy."""
-    url = f"{base_url}{API_PREFIX}/health"
+    """Verify the OM server is reachable.
+
+    OpenMetadata 1.6.x does not expose ``GET /api/v1/health`` on the default image;
+    we use ``GET /api/v1/system/version`` (same signal as ``scripts/smoke_test.py``).
+    """
+    url = f"{base_url}{API_PREFIX}/system/version"
     result = _api_request(url)
     if result is None:
         return False
-    status = result.get("status")
-    if status != "healthy":
-        print(f"FAIL: health check returned unexpected payload: {result}", file=sys.stderr)
+    version = result.get("version")
+    if not isinstance(version, str) or not version:
+        print(f"FAIL: version check returned unexpected payload: {result}", file=sys.stderr)
         return False
-    print("  OM server reachable — health=healthy")
+    print("  OM server reachable (version check)")
     return True
 
 

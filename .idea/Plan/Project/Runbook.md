@@ -5,7 +5,7 @@
 ## Demo-day morning checklist (run at 9 AM IST on Apr 26)
 
 ```
-[ ] OM Docker container responds at http://localhost:8585/api/v1/health (status: healthy)
+[ ] OM Docker responds: `curl -sf http://localhost:8586/healthcheck` and `curl -s http://localhost:8585/api/v1/system/version` show a live server
 [ ] Bot JWT token is fresh (regenerated this morning, expires > 24h from now)
 [ ] `python scripts/smoke_test.py` runs 5 representative chat queries successfully
 [ ] OpenAI account 1 quota check: `python scripts/check_openai_quota.py` returns >$2 remaining
@@ -64,20 +64,22 @@ curl -H "Authorization: Bearer $AI_SDK_TOKEN" http://localhost:8585/api/v1/syste
 
 ## Failure mode 3: OM container crashes / unhealthy
 
-**Symptom**: `curl http://localhost:8585/api/v1/health` hangs or returns 5xx.
+**Symptom**: `curl -sf http://localhost:8586/healthcheck` fails or `curl http://localhost:8585/api/v1/system/version` hangs or returns 5xx.
 
 **Diagnose**:
 
 ```bash
-docker compose -f infrastructure/docker-compose.yml ps
-docker logs openmetadata_server --tail 100
+docker compose -f infrastructure/docker-compose.om.yml ps -a
+docker compose -f infrastructure/docker-compose.om.yml logs --tail 100 openmetadata-migrate
+docker compose -f infrastructure/docker-compose.om.yml logs --tail 100 openmetadata-server
 ```
 
 **Mitigate**:
 
-- If OOM: increase Docker Desktop memory to 10 GB; `docker compose restart openmetadata_server`
+- If OOM: increase Docker Desktop memory to 10 GB; `docker compose -f infrastructure/docker-compose.om.yml restart openmetadata-server`
 - If port conflict on 8585: `lsof -i :8585`; kill the offender; restart compose
-- If MySQL is the broken dep: `docker compose restart openmetadata_mysql && sleep 30 && docker compose restart openmetadata_server`
+- If MySQL is the broken dep: `docker compose -f infrastructure/docker-compose.om.yml restart openmetadata-mysql` then `docker compose -f infrastructure/docker-compose.om.yml up -d`
+- If migrate failed (empty DB): `docker compose -f infrastructure/docker-compose.om.yml down -v` then `make om-start`
 - If unrecoverable in 3 min: switch to backup demo machine (per [RiskRegister.md R-02](./RiskRegister.md))
 
 ---

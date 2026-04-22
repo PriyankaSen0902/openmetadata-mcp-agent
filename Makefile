@@ -85,7 +85,7 @@ om-stop:
 	@echo "OpenMetadata stopped."
 
 om-health:
-	@curl -sf http://localhost:8585/api/v1/health && echo " ← OM healthy" || echo "OM not reachable at :8585"
+	@curl -sf http://localhost:8586/healthcheck >/dev/null && echo " ← OM healthy (admin healthcheck)" || echo "OM not reachable (try :8585 / :8586)"
 
 om-logs:
 	docker compose -f infrastructure/docker-compose.om.yml logs -f openmetadata-server
