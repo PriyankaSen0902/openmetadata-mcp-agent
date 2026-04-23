@@ -17,6 +17,7 @@ Mocks urllib to verify the script sends correct API requests.
 
 from __future__ import annotations
 
+import json
 import sys
 from pathlib import Path
 from unittest.mock import patch
@@ -27,7 +28,7 @@ sys.path.insert(0, str(ROOT / "scripts"))
 
 class TestLoadSeedImport:
     def test_load_seed_module_importable(self):
-        import load_seed
+        import load_seed  # type: ignore[import-not-found]
 
         assert hasattr(load_seed, "main")
         assert hasattr(load_seed, "SEED_FILE")
@@ -68,9 +69,56 @@ class TestBuildColumnPayload:
             }
         )
         assert result["name"] == "email"
+        assert result["dataLength"] == 255
         assert len(result["tags"]) == 1
         assert result["tags"][0]["tagFQN"] == "PII.Sensitive"
         assert result["tags"][0]["source"] == "Classification"
+
+    def test_varchar_respects_explicit_data_length(self):
+        import load_seed
+
+        result = load_seed._build_column_payload(
+            {"name": "code", "dataType": "VARCHAR", "dataLength": 32}
+        )
+        assert result["dataLength"] == 32
+
+    def test_type_specific_defaults(self):
+        import load_seed
+
+        assert (
+            load_seed._build_column_payload({"name": "c", "dataType": "CHAR"})["dataLength"] == 36
+        )
+        assert (
+            load_seed._build_column_payload({"name": "b", "dataType": "BINARY"})["dataLength"] == 16
+        )
+        assert (
+            load_seed._build_column_payload({"name": "v", "dataType": "VARBINARY"})["dataLength"]
+            == 255
+        )
+        assert (
+            load_seed._build_column_payload({"name": "t", "dataType": "TEXT"})["dataLength"]
+            == 65535
+        )
+
+    def test_int_has_no_data_length(self):
+        import load_seed
+
+        result = load_seed._build_column_payload({"name": "id", "dataType": "INT"})
+        assert "dataLength" not in result
+
+    def test_seed_string_columns_get_data_length_in_payload(self):
+        import load_seed
+
+        seed = json.loads(load_seed.SEED_FILE.read_text(encoding="utf-8"))
+        needs = load_seed._NEEDS_DATA_LENGTH
+        for table in seed["tables"]:
+            for col in table["columns"]:
+                payload = load_seed._build_column_payload(col)
+                dt = str(payload.get("dataType", "")).upper()
+                if dt in needs:
+                    msg = f"{table['name']}.{col['name']}: missing dataLength for {dt}"
+                    assert "dataLength" in payload, msg
+                    assert payload["dataLength"] is not None, msg
 
     def test_column_without_description(self):
         import load_seed

@@ -27,6 +27,7 @@ Usage:
 from __future__ import annotations
 
 import argparse
+import base64
 import http.client
 import json
 import os
@@ -120,6 +121,11 @@ def _login_candidates(username: str) -> list[str]:
     return [username]
 
 
+def _password_for_login_api(password: str) -> str:
+    """OM 1.6.x ``/users/login`` expects the password as Base64 (ASCII string)."""
+    return base64.b64encode(password.encode("utf-8")).decode("ascii")
+
+
 def _extract_access_token(result: dict[str, Any]) -> str | None:
     """Extract an access token from an OM login response."""
     token = result.get("accessToken")
@@ -142,7 +148,7 @@ def login_admin(base_url: str, username: str, password: str) -> str | None:
 
     final_result: dict[str, Any] | None = None
     for candidate in _login_candidates(username):
-        payload = {"email": candidate, "password": password}
+        payload = {"email": candidate, "password": _password_for_login_api(password)}
         result = _api_request(url, method="POST", data=payload, headers=headers)
         if result is None:
             continue
@@ -200,38 +206,30 @@ def generate_token(
     user_data: dict[str, Any],
     expiry_value: str,
 ) -> str | None:
-    """Generate a new JWT for the bot user via the OM REST API."""
+    """Generate a new JWT using ``PUT /api/v1/users/generateToken/{id}`` (OM 1.6.x).
+
+    Bot-linked users cannot be updated via ``PUT /api/v1/users`` with a full entity body;
+    the server returns 400 if the bot user is already bound to a bot.
+    """
     user_id = user_data["id"]
     headers = {
         "Content-Type": "application/json",
         "Authorization": f"Bearer {auth_token}",
     }
-
-    auth_mechanism: dict[str, Any] = {
-        "authType": "JWT",
-        "config": {
-            "JWTTokenExpiry": expiry_value,
-        },
-    }
-
-    update_payload = {**user_data, "authenticationMechanism": auth_mechanism}
-
-    url = f"{base_url}{API_PREFIX}/users"
-    result = _api_request(url, method="PUT", data=update_payload, headers=headers)
+    url = f"{base_url}{API_PREFIX}/users/generateToken/{user_id}"
+    body = {"JWTTokenExpiry": expiry_value}
+    result = _api_request(url, method="PUT", data=body, headers=headers)
     if result is None:
-        print("FAIL: could not update user with new token", file=sys.stderr)
+        print("FAIL: could not generate bot JWT", file=sys.stderr)
         return None
 
-    mechanism = result.get("authenticationMechanism", {})
-    config = mechanism.get("config", {})
-    jwt_token = config.get("JWTToken") or config.get("token")
-    if not jwt_token:
-        url_get = f"{base_url}{API_PREFIX}/users/{user_id}?fields=authenticationMechanism"
-        refreshed = _api_request(url_get, headers=headers)
-        if refreshed:
-            mechanism = refreshed.get("authenticationMechanism", {})
-            config = mechanism.get("config", {})
-            jwt_token = config.get("JWTToken") or config.get("token")
+    jwt_token = result.get("JWTToken") or result.get("token")
+    if not isinstance(jwt_token, str) or not jwt_token:
+        print(
+            f"FAIL: generateToken response missing JWTToken. Keys: {list(result.keys())}",
+            file=sys.stderr,
+        )
+        return None
 
     return jwt_token
 

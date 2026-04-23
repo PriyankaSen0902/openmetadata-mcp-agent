@@ -53,14 +53,14 @@ This project advances both. See [Project/VisionAlignment.md](./Project/VisionAli
 ## 📁 Folder Map
 
 ```
-.idea/Plan/ (LOCAL — agent command center, gitignored)
+.idea/Plan/ (published — engineering plan hub; committed via !.idea/Plan/ in .gitignore)
 ├── README.md                      ← THIS FILE
 ├── TaskSync.md                    ← Master task list (ordered, per-person)
 ├── Project/                       ← PRD, ADRs, Discovery, NFRs, Vision, Judges, Risks, Runbook, TechStack
 ├── Architecture/                  ← System design, Data Model, API Contract, CLAUDE template, Coding Standards
 ├── Security/                      ← Threat Model, Prompt Injection, Control Coverage, Secrets, CI Hardening
 ├── DataFindings/                  ← MCP audit, board status, API analysis, GFI
-├── FeatureDev/                    ← Per-feature specs
+├── FeatureDev/                    ← Per-feature specs (+ [GovernanceEngine.md](./FeatureDev/GovernanceEngine.md))
 ├── Validation/                    ← Setup guide, Test Strategy, Quality Gates, PRR
 ├── PR-Review/                     ← PR workflow, review log
 ├── Demo/                          ← Narrative, Submission Checklist, Competitive Matrix, Failure Recovery
@@ -82,6 +82,7 @@ PLAN → BUILD → VALIDATE → FIX → VALIDATE → PR DRAFT → REVIEWER → M
   - PR opened by @GunaPalanivel → @PriyankaSen0902 is requested
 - All PRs use `PR-Review/PRTemplate.md`
 - Review against `PR-Review/Checklist.md`
+- **16 engineering issues** use [PR-Review/EngineeringIssueTemplate.md](./PR-Review/EngineeringIssueTemplate.md) for GitHub issue bodies ([TaskSync.md §Sixteen-issue](./TaskSync.md))
 - Track per-person, per-phase progress in [Progress.md](./Progress.md)
 
 ---
@@ -106,10 +107,20 @@ PLAN → BUILD → VALIDATE → FIX → VALIDATE → PR DRAFT → REVIEWER → M
 - [Project/Runbook.md](./Project/Runbook.md) — Demo-day operations + 8 failure modes
 - [Project/TechStackDR.md](./Project/TechStackDR.md) — Consolidated Tech Stack Decision Record
 
+### Feature specs
+
+- [FeatureDev/GovernanceEngine.md](./FeatureDev/GovernanceEngine.md) — Governance FSM, HITL confirm, OM write-back, drift, similarity, 16-issue map
+
+### PR workflow
+
+- [PR-Review/EngineeringIssueTemplate.md](./PR-Review/EngineeringIssueTemplate.md) — Mandatory GitHub issue template (Context → Acceptance criteria)
+- [PR-Review/Checklist.md](./PR-Review/Checklist.md) — Review checklist
+- [PR-Review/PRTemplate.md](./PR-Review/PRTemplate.md) — PR template
+
 ### Architecture
 
 - [Architecture/Overview.md](./Architecture/Overview.md) — System context + Trust Boundary diagram + Observability subsystem
-- [Architecture/DataModel.md](./Architecture/DataModel.md) — Pydantic shapes (ChatSession, ToolCallProposal, ClassificationJob, error envelope)
+- [Architecture/DataModel.md](./Architecture/DataModel.md) — Pydantic shapes (ChatSession, PendingSession, ToolCallProposal, governance models, error envelope)
 - [Architecture/APIContract.md](./Architecture/APIContract.md) — Full FastAPI contract (`/chat`, `/chat/confirm`, `/healthz`, `/metrics`)
 - [Architecture/CLAUDETemplate.md](./Architecture/CLAUDETemplate.md) — `CLAUDE.md` to drop into the new repo root
 - [Architecture/CodingStandards.md](./Architecture/CodingStandards.md) — The Three Laws of Implementation in Python

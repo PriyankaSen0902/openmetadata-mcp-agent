@@ -155,6 +155,35 @@ class TestSelectTools:
         result = await select_tools(base_state)
         assert result["tool_proposals"] == []
 
+    @patch("copilot.services.agent.openai_client.call_chat_json", new_callable=AsyncMock)
+    async def test_classify_intent_uses_deterministic_tool_chain(
+        self, mock_llm: AsyncMock, base_state: AgentState
+    ) -> None:
+        from copilot.services.agent import select_tools
+
+        base_state["intent"] = "classify"
+        base_state["user_message"] = "Scan customer_db and classify PII."
+
+        result = await select_tools(base_state)
+        proposals = result["tool_proposals"]
+
+        assert [proposal["name"] for proposal in proposals] == [
+            "search_metadata",
+            "get_entity_details",
+            "patch_entity",
+        ]
+        assert proposals[0]["arguments"]["queryFilter"] == "service:customer_db"
+        assert (
+            proposals[1]["arguments"]["entityFqn"] == "sample_mysql.default.customer_db.customers"
+        )
+        assert len(proposals[2]["arguments"]["patch"]) == 3
+        assert proposals[2]["arguments"]["approved_tags"] == [
+            "sample_mysql.default.customer_db.customers.email:PII.Sensitive",
+            "sample_mysql.default.customer_db.customers.phone:PII.Sensitive",
+            "sample_mysql.default.customer_db.customers.ssn:PII.Sensitive",
+        ]
+        mock_llm.assert_not_awaited()
+
 
 class TestValidateProposal:
     """Tests for the validate_proposal node."""
@@ -194,6 +223,40 @@ class TestValidateProposal:
         assert len(proposals) == 1
         assert proposals[0].risk_level == RiskLevel.HARD_WRITE
         assert proposals[0].expires_at is not None
+
+    @patch("copilot.services.agent.governance_store.transition", new_callable=AsyncMock)
+    async def test_marks_scanned_for_entity_proposals(
+        self, mock_transition: AsyncMock, base_state: AgentState
+    ) -> None:
+        base_state["tool_proposals"] = [
+            {
+                "name": "patch_entity",
+                "arguments": {"entityFqn": "svc.db.schema.table", "patch": []},
+                "rationale": "tag",
+            },
+        ]
+        await validate_proposal(base_state)
+        assert mock_transition.await_count == 1
+
+    async def test_sets_evidence_gap_for_classify_without_proposals(
+        self, base_state: AgentState
+    ) -> None:
+        """Sets evidence_gap when intent is classify and no valid proposals remain."""
+        base_state["intent"] = "classify"
+        base_state["tool_proposals"] = []
+        result = await validate_proposal(base_state)
+        assert result.get("evidence_gap") is True
+
+    async def test_does_not_set_evidence_gap_if_proposals_exist(
+        self, base_state: AgentState
+    ) -> None:
+        """Does not set evidence_gap if proposals are successfully validated."""
+        base_state["intent"] = "classify"
+        base_state["tool_proposals"] = [
+            {"name": "search_metadata", "arguments": {"query": "test"}, "rationale": "search"}
+        ]
+        result = await validate_proposal(base_state)
+        assert result.get("evidence_gap") is not True
 
 
 class TestToolAllowlist:
@@ -264,6 +327,20 @@ class TestHitlGate:
 
         assert len(result["tool_proposals"]) == 1  # only the read
         assert result["pending_confirmation"] is not None
+
+    @patch("copilot.services.agent.governance_store.transition", new_callable=AsyncMock)
+    async def test_marks_suggested_for_write_proposals(
+        self, mock_transition: AsyncMock, base_state: AgentState
+    ) -> None:
+        write_proposal = ToolCallProposal(
+            request_id=uuid4(),
+            tool_name=ToolName.PATCH_ENTITY,
+            arguments={"entityFqn": "svc.db.schema.table", "patch": []},
+            risk_level=RiskLevel.HARD_WRITE,
+        )
+        base_state["tool_proposals"] = [write_proposal]
+        await hitl_gate(base_state)
+        assert mock_transition.await_count == 1
 
 
 class TestExecuteTool:
@@ -354,6 +431,7 @@ class TestFormatResponse:
 
         result = await format_response(base_state)
 
+        assert result["final_response"] is not None
         assert "Found **2 tables**" in result["final_response"]
         assert result["tokens_prompt"] == 100
 
@@ -370,7 +448,59 @@ class TestFormatResponse:
         result = await format_response(base_state)
 
         assert result["final_response"] is not None
+        assert result["final_response"] is not None
         assert "Result 1" in result["final_response"]
+
+    @patch("copilot.services.agent.openai_client.call_chat", new_callable=AsyncMock)
+    async def test_injects_evidence_gap_prompt(
+        self, mock_llm: AsyncMock, base_state: AgentState
+    ) -> None:
+        """If evidence_gap is True, formatting context includes the humility instruction."""
+        mock_llm.return_value = {"content": "ok", "tokens_prompt": 1, "tokens_completion": 1}
+        base_state["evidence_gap"] = True
+        await format_response(base_state)
+
+        call_kwargs = (
+            mock_llm.call_args.kwargs if mock_llm.call_args.kwargs else mock_llm.call_args[1]
+        )
+        messages = call_kwargs.get("messages") or mock_llm.call_args[0][0]
+        system_call_content = messages[1]["content"]
+        assert "admit humility" in system_call_content
+
+    @patch("copilot.services.agent.openai_client.call_chat", new_callable=AsyncMock)
+    async def test_injects_causal_impact_prompt(
+        self, mock_llm: AsyncMock, base_state: AgentState
+    ) -> None:
+        """If classify intent and downstream edges present, formatting context includes causal impact."""
+        mock_llm.return_value = {"content": "ok", "tokens_prompt": 1, "tokens_completion": 1}
+        base_state["intent"] = "classify"
+        base_state["tool_results"] = [{"downstreamEdges": []}]
+        await format_response(base_state)
+
+        call_kwargs = (
+            mock_llm.call_args.kwargs if mock_llm.call_args.kwargs else mock_llm.call_args[1]
+        )
+        messages = call_kwargs.get("messages") or mock_llm.call_args[0][0]
+        system_call_content = messages[1]["content"]
+        assert "Causal downstream impact detected" in system_call_content
+
+    @patch("copilot.services.agent.openai_client.call_chat", new_callable=AsyncMock)
+    @patch("copilot.services.agent.governance_store.get_approved_fqns", new_callable=AsyncMock)
+    async def test_injects_similarity_prompt(
+        self, mock_get_approved: AsyncMock, mock_llm: AsyncMock, base_state: AgentState
+    ) -> None:
+        """If FQN is highly similar to approved ones, formatting context includes similarity warning."""
+        mock_get_approved.return_value = ["test.db.schema.table"]
+        mock_llm.return_value = {"content": "ok", "tokens_prompt": 1, "tokens_completion": 1}
+        base_state["tool_proposals"] = [{"arguments": {"fqn": "test.db.schema.table"}}]
+        await format_response(base_state)
+
+        call_kwargs = (
+            mock_llm.call_args.kwargs if mock_llm.call_args.kwargs else mock_llm.call_args[1]
+        )
+        messages = call_kwargs.get("messages") or mock_llm.call_args[0][0]
+        system_call_content = messages[1]["content"]
+        assert "Opinionated Governance Assistant:" in system_call_content
 
 
 class TestRunChatTurn:
@@ -397,3 +527,32 @@ class TestRunChatTurn:
         mock_graph.ainvoke.assert_awaited_once()
         initial_state = mock_graph.ainvoke.await_args.args[0]
         assert initial_state["request_id"] == str(request_id)
+
+    @patch("copilot.services.agent._get_compiled_graph")
+    async def test_audit_log_includes_error_code(self, mock_get_graph: Any) -> None:
+        """Failed tool calls surface error_code in the API audit_log."""
+        request_id = uuid4()
+        session_id = uuid4()
+        mock_graph = AsyncMock()
+        mock_graph.ainvoke.return_value = {
+            "request_id": str(request_id),
+            "session_id": str(session_id),
+            "final_response": "Could not search.",
+            "tool_records": [
+                {
+                    "tool_name": "search_metadata",
+                    "duration_ms": 12,
+                    "success": False,
+                    "error_code": "om_unavailable",
+                }
+            ],
+            "tokens_prompt": 0,
+            "tokens_completion": 0,
+        }
+        mock_get_graph.return_value = mock_graph
+
+        result = await run_chat_turn("show me tables", request_id=request_id)
+
+        assert len(result["audit_log"]) == 1
+        assert result["audit_log"][0]["error_code"] == "om_unavailable"
+        assert result["audit_log"][0]["success"] is False

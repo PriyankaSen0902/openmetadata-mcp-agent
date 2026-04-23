@@ -17,25 +17,22 @@ Per .idea/Plan/Architecture/APIContract.md:
   POST /api/v1/chat/confirm    user accepts/rejects pending write proposal
   POST /api/v1/chat/cancel     user clears the session
 
-All three routes are functional as of P2-12.
+POST /api/v1/chat is functional in Phase 2; confirm/cancel use the in-memory
+session store (P2-19).
 """
 
 from __future__ import annotations
 
-import asyncio
-from datetime import UTC, datetime
-from uuid import UUID
+from uuid import UUID, uuid4
 
 from fastapi import APIRouter, Request
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
 
-from copilot.clients import om_mcp
-from copilot.middleware.error_envelope import _envelope
-from copilot.models.chat import ErrorCode, ToolName
-from copilot.observability import get_logger
-from copilot.services import session_store
 from copilot.services.agent import run_chat_turn
+from copilot.services.sessions import cancel_chat_session, confirm_chat_proposal
+from copilot.services.agent import run_chat_turn
+from copilot.services.sessions import cancel_chat_session, confirm_chat_proposal
 
 log = get_logger(__name__)
 
@@ -77,89 +74,20 @@ async def post_chat(request: Request, body: ChatRequest) -> JSONResponse:
 
 @router.post("/chat/confirm", summary="Confirm a pending write proposal")
 async def post_chat_confirm(request: Request, body: ChatConfirmRequest) -> JSONResponse:
-    """Accept or reject a pending write proposal.
-
-    Per APIContract.md:
-      - accepted=true  → execute the tool, return result
-      - accepted=false → discard the proposal, return cancellation
-      - unknown proposal_id → 422 proposal_not_found
-      - expired proposal  → 410 confirmation_expired
-    """
-    proposal = session_store.get_proposal(body.proposal_id)
-
-    if proposal is None:
-        return _envelope(ErrorCode.PROPOSAL_NOT_FOUND, request)
-
-    if session_store.is_expired(proposal):
-        session_store.remove_proposal(body.proposal_id)
-        return _envelope(ErrorCode.CONFIRMATION_EXPIRED, request)
-
-    # Consume the proposal (single-use)
-    session_store.remove_proposal(body.proposal_id)
-
-    if not body.accepted:
-        log.info("chat.confirm.rejected", proposal_id=str(body.proposal_id))
-        return JSONResponse(
-            status_code=200,
-            content={
-                "request_id": str(proposal.request_id),
-                "session_id": str(body.session_id),
-                "response": "Cancelled. No changes were made. Anything else?",
-                "audit_log": [],
-                "ts": datetime.now(UTC).isoformat(),
-            },
-        )
-
-    # Execute the confirmed write tool
-    log.info(
-        "chat.confirm.accepted",
-        proposal_id=str(body.proposal_id),
-        tool=str(proposal.tool_name),
+    """Execute or reject a pending write via ``services.sessions``."""
+    rid = getattr(request.state, "request_id", None)
+    request_uuid = rid if isinstance(rid, UUID) else uuid4()
+    result = await confirm_chat_proposal(
+        body.session_id,
+        body.proposal_id,
+        body.accepted,
+        request_id=request_uuid,
     )
-    start = datetime.now(UTC)
-    try:
-        if proposal.tool_name == ToolName.GITHUB_CREATE_ISSUE:
-            from copilot.clients import github_mcp
-
-            _ = await asyncio.to_thread(
-                github_mcp.call_tool, str(proposal.tool_name), proposal.arguments
-            )
-        else:
-            _ = await asyncio.to_thread(
-                om_mcp.call_tool, str(proposal.tool_name), proposal.arguments
-            )
-        end = datetime.now(UTC)
-        duration_ms = int((end - start).total_seconds() * 1000)
-        return JSONResponse(
-            status_code=200,
-            content={
-                "request_id": str(proposal.request_id),
-                "session_id": str(body.session_id),
-                "response": f"Done. Applied {proposal.tool_name} successfully.",
-                "audit_log": [
-                    {
-                        "tool_name": str(proposal.tool_name),
-                        "confirmed_by_user": True,
-                        "duration_ms": duration_ms,
-                        "success": True,
-                    }
-                ],
-                "ts": datetime.now(UTC).isoformat(),
-            },
-        )
-    except Exception:
-        log.exception("chat.confirm.execution_failed", tool=str(proposal.tool_name))
-        return _envelope(ErrorCode.INTERNAL_ERROR, request)
+    return JSONResponse(status_code=200, content=result)
 
 
 @router.post("/chat/cancel", summary="Cancel the current chat session")
 async def post_chat_cancel(_request: Request, body: ChatCancelRequest) -> JSONResponse:
-    """Clear session state. Clears any pending proposals for this session."""
-    return JSONResponse(
-        status_code=200,
-        content={
-            "session_id": str(body.session_id),
-            "cancelled": True,
-            "ts": datetime.now(UTC).isoformat(),
-        },
-    )
+    """Clear pending HITL state for the session."""
+    result = await cancel_chat_session(body.session_id)
+    return JSONResponse(status_code=200, content=result)

@@ -75,6 +75,12 @@ def check_chat(url: str) -> bool:
     audit_log = data.get("audit_log", [])
     if not any(entry.get("success") is True for entry in audit_log):
         print(f"FAIL: {url} audit_log missing a successful entry: {audit_log}", file=sys.stderr)
+        print(
+            "HINT: Read uvicorn stderr for agent.execute_tool.failed / om.call_tool.failed "
+            "(full MCP error text). If tables exist in OM but search is empty, run "
+            "`python scripts/trigger_om_search_reindex.py` and wait ~30-120s, then retry.",
+            file=sys.stderr,
+        )
         return False
 
     print(f"OK: {url}  (agent responded and recorded a successful tool call)")

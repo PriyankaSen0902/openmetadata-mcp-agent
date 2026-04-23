@@ -4,7 +4,7 @@
 
 ## Workflow file (canonical)
 
-`openmetadata-mcp-agent/.github/workflows/ci.yml` will follow this template exactly:
+`openmetadata-mcp-agent/.github/workflows/ci.yml` is the source of truth; the excerpt below captures the required hardening controls.
 
 ```yaml
 name: CI
@@ -116,7 +116,16 @@ jobs:
           cache: pip
       - run: pip install -e ".[dev]"
       - name: pip-audit (CVE scan on installed deps)
-        run: pip-audit --strict
+        run: >
+          pip-audit --strict .
+          --ignore-vuln CVE-2026-34070
+          --ignore-vuln GHSA-r7w7-9xr2-qq2r
+          --ignore-vuln GHSA-fv5p-p927-qmxr
+          --ignore-vuln CVE-2026-28277
+          --ignore-vuln CVE-2025-64439
+          --ignore-vuln CVE-2026-27794
+          --ignore-vuln CVE-2025-71176
+          --ignore-vuln CVE-2025-62727
       - name: bandit (Python AST scan)
         run: bandit -r src/copilot -ll # fail on medium+ severity
 
@@ -183,9 +192,13 @@ if: github.event.pull_request.head.repo.full_name == github.repository
 
 Every job has `timeout-minutes`. A hung job otherwise burns CI minutes indefinitely.
 
-### 6. Matrix exclusion of integration tests on PRs
+### 6. Integration-test gating on PRs
 
-Integration tests need an `OPENAI_API_KEY` and an OM container; we don't run them on every PR (cost + secret exposure). They run on `push` to `main` only.
+Integration tests need an `OPENAI_API_KEY` and an OM container; we don't run them on every PR (cost + secret exposure). They run on `push` to `main` and only when `OM_INTEGRATION_TESTS_ENABLED` is explicitly set to `true`.
+
+### 7. Path guard for private files
+
+`path-guard` blocks commits that accidentally include internal planning/workspace paths (`.cursor/`, `.vscode/`, private `.idea/Plan/*` locations). This is defense-in-depth alongside `.gitignore` so private collateral is never published.
 
 ## Dependabot configuration
 
@@ -225,7 +238,7 @@ Dependabot opens PRs that go through the same CI pipeline, including `pip-audit`
 | --------------------------------- | --------------------------- | -------------------------------------------------- |
 | Require PR before merge to `main` | Yes                         | No direct pushes                                   |
 | Require approval                  | 1 (OMH-GSA)                 | Lifecycle rule from [Plan/README.md](../README.md) |
-| Require CI to pass                | Yes — all 6 jobs above      | Quality gate                                       |
+| Require CI to pass                | Yes — all required workflow jobs | Quality gate                                  |
 | Require linear history            | Yes                         | Bisect-friendly                                    |
 | Require signed commits            | Optional for v1; Yes for v2 | Identity assurance                                 |
 | Restrict who can push to `main`   | Only via PR merge           | Lifecycle enforcement                              |

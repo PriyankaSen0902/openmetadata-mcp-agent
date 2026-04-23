@@ -30,7 +30,7 @@ from urllib.error import HTTPError, URLError
 ROOT = Path(__file__).resolve().parent.parent.parent
 sys.path.insert(0, str(ROOT / "scripts"))
 
-import generate_bot_jwt  # noqa: E402
+import generate_bot_jwt  # type: ignore[import-not-found]  # noqa: E402
 
 
 def _mock_response(data: dict[str, Any], status: int = 200) -> MagicMock:
@@ -178,16 +178,7 @@ class TestGetBotUser:
 class TestGenerateToken:
     @patch("generate_bot_jwt.urllib.request.urlopen")
     def test_token_generated(self, mock_urlopen: MagicMock) -> None:
-        put_response = _mock_response(
-            {
-                "id": "user-uuid-123",
-                "authenticationMechanism": {
-                    "authType": "JWT",
-                    "config": {"JWTToken": "generated-bot-jwt-token-xyz"},
-                },
-            }
-        )
-        mock_urlopen.return_value = put_response
+        mock_urlopen.return_value = _mock_response({"JWTToken": "generated-bot-jwt-token-xyz"})
 
         user_data = {"id": "user-uuid-123", "name": "ingestion-bot"}
         token = generate_bot_jwt.generate_token(
@@ -206,30 +197,15 @@ class TestGenerateToken:
         assert token is None
 
     @patch("generate_bot_jwt.urllib.request.urlopen")
-    def test_token_from_refreshed_get(self, mock_urlopen: MagicMock) -> None:
-        """When PUT response lacks the token, fallback GET should find it."""
-        put_response = _mock_response(
-            {
-                "id": "user-uuid-123",
-                "authenticationMechanism": {"authType": "JWT", "config": {}},
-            }
-        )
-        get_response = _mock_response(
-            {
-                "id": "user-uuid-123",
-                "authenticationMechanism": {
-                    "authType": "JWT",
-                    "config": {"JWTToken": "token-from-get"},
-                },
-            }
-        )
-        mock_urlopen.side_effect = [put_response, get_response]
+    def test_token_accepts_token_alias_field(self, mock_urlopen: MagicMock) -> None:
+        """Some OM responses use ``token`` instead of ``JWTToken``."""
+        mock_urlopen.return_value = _mock_response({"token": "token-from-alias"})
 
         user_data = {"id": "user-uuid-123", "name": "ingestion-bot"}
         token = generate_bot_jwt.generate_token(
             "http://localhost:8585", "admin-token", user_data, "30"
         )
-        assert token == "token-from-get"
+        assert token == "token-from-alias"
 
 
 class TestMain:

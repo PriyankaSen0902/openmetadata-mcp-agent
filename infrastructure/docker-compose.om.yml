@@ -64,7 +64,7 @@ services:
   # One-shot Flyway/schema bootstrap (matches upstream quickstart execute-migrate-all).
   # Without this, the server starts against an empty DB and crash-loops (missing Flowable tables).
   openmetadata-migrate:
-    image: docker.getcollate.io/openmetadata/server:1.6.2
+    image: docker.getcollate.io/openmetadata/server:latest
     container_name: openmetadata-migrate
     restart: "no"
     command: "./bootstrap/openmetadata-ops.sh migrate"
@@ -96,7 +96,7 @@ services:
       PIPELINE_SERVICE_CLIENT_CLASS_NAME: org.openmetadata.service.clients.pipeline.noop.NoopClient
 
   openmetadata-server:
-    image: docker.getcollate.io/openmetadata/server:1.6.2
+    image: docker.getcollate.io/openmetadata/server:latest
     container_name: openmetadata-server
     restart: unless-stopped
     depends_on:

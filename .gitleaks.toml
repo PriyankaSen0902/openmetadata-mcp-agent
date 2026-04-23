@@ -1,0 +1,8 @@
+title = "openmetadata-mcp-agent"
+[extend]
+useDefault = true
+[allowlist]
+description = "Synthetic credentials in Settings validation tests (not real secrets)"
+paths = [
+    '''tests/unit/test_settings\.py''',
+]

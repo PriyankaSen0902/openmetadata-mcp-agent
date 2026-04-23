@@ -14,6 +14,10 @@
 
 from __future__ import annotations
 
-from copilot.config.settings import Settings, get_settings
+from copilot.config.settings import (
+    Settings,
+    assert_runtime_env_ready,
+    get_settings,
+)
 
-__all__ = ["Settings", "get_settings"]
+__all__ = ["Settings", "assert_runtime_env_ready", "get_settings"]

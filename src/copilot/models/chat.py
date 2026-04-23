@@ -137,6 +137,17 @@ class ToolCallProposal(BaseModel):
         return self.risk_level is not RiskLevel.READ
 
 
+class PendingSession(BaseModel):
+    """In-memory session row for HITL confirm/cancel (P2-19). Not persisted across restart."""
+
+    model_config = ConfigDict(frozen=False)
+
+    session_id: UUID
+    pending: ToolCallProposal | None = None
+    expires_at: datetime | None = None
+    updated_at: datetime = Field(default_factory=_now_utc)
+
+
 class ToolCallRecord(BaseModel):
     """Append-only audit-log entry. One per executed tool call."""
 

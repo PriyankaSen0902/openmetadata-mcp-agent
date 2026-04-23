@@ -38,5 +38,9 @@ def client() -> Iterator[TestClient]:
     from copilot.api.main import create_app
 
     app = create_app()
-    with TestClient(app) as c:
+    # Starlette BaseHTTPMiddleware can wrap route exceptions in ExceptionGroup;
+    # raise_server_exceptions=True surfaces that to pytest instead of the HTTP
+    # response from register_envelope_handlers (breaks error-envelope asserts on
+    # Python 3.13+). False keeps tests aligned with real clients.
+    with TestClient(app, raise_server_exceptions=False) as c:
         yield c

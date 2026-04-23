@@ -20,12 +20,15 @@ from copilot.models.chat import (
     ErrorEnvelope,
     LineageImpactReport,
     LineageNode,
+    PendingSession,
     RiskLevel,
     TagSuggestion,
     ToolCallProposal,
     ToolCallRecord,
     ToolName,
 )
+from copilot.models.governance_record import EntityGovernanceRecord
+from copilot.models.governance_state import ALLOWED_TRANSITIONS, GovernanceState
 from copilot.models.mcp_tools import (
     CreateGlossaryParams,
     CreateGlossaryResponse,
@@ -42,24 +45,25 @@ from copilot.models.mcp_tools import (
 )
 
 __all__ = [
-    # chat.py
+    "ALLOWED_TRANSITIONS",
     "ChatSession",
     "ClassificationJob",
-    # mcp_tools.py — Params
     "CreateGlossaryParams",
-    # mcp_tools.py — Responses
     "CreateGlossaryResponse",
     "CreateGlossaryTermParams",
     "CreateGlossaryTermResponse",
+    "EntityGovernanceRecord",
     "ErrorEnvelope",
     "GetEntityDetailsParams",
     "GetEntityDetailsResponse",
     "GetEntityLineageParams",
     "GetEntityLineageResponse",
+    "GovernanceState",
     "LineageImpactReport",
     "LineageNode",
     "PatchEntityParams",
     "PatchEntityResponse",
+    "PendingSession",
     "RiskLevel",
     "SearchMetadataParams",
     "SearchMetadataResponse",

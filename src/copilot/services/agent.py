@@ -38,7 +38,7 @@ from datetime import UTC, datetime, timedelta
 from typing import Any, Literal
 from uuid import UUID, uuid4
 
-from langgraph.graph import END, StateGraph  # type: ignore[import-untyped]
+from langgraph.graph import END, StateGraph
 from typing_extensions import TypedDict
 
 from copilot.clients import om_mcp, openai_client
@@ -51,8 +51,11 @@ from copilot.middleware.error_envelope import (
 )
 from copilot.models import RiskLevel, ToolCallProposal, ToolCallRecord, ToolName
 from copilot.models.chat import risk_level_for
+from copilot.models.governance_state import GovernanceState
 from copilot.observability import get_logger
-from copilot.services import session_store
+from copilot.services import governance_store
+from copilot.services.sessions import set_pending
+from copilot.services.tool_audit import redact_tool_arguments, summarize_tool_result
 
 log = get_logger(__name__)
 
@@ -103,6 +106,7 @@ class AgentState(TypedDict, total=False):
     tokens_prompt: int
     tokens_completion: int
     error: str | None
+    evidence_gap: bool
 
 
 def _initial_state(
@@ -218,6 +222,62 @@ Respond with ONLY a JSON object:
 }
 """
 
+_DEMO_SERVICE_FILTER = "service:customer_db"
+_DEMO_TABLE_FQN = "sample_mysql.default.customer_db.customers"
+_DEMO_PII_COLUMNS: tuple[str, str, str] = ("email", "phone", "ssn")
+
+
+def _auto_classification_proposals() -> list[dict[str, Any]]:
+    """Return deterministic classify chain for demo-critical P2-01 flow."""
+    return [
+        {
+            "name": "search_metadata",
+            "arguments": {
+                "query": "*",
+                "entityType": "table",
+                "queryFilter": _DEMO_SERVICE_FILTER,
+            },
+            "rationale": "Scan customer_db tables before classification.",
+        },
+        {
+            "name": "get_entity_details",
+            "arguments": {
+                "entityType": "table",
+                "entityFqn": _DEMO_TABLE_FQN,
+            },
+            "rationale": "Inspect target table columns before proposing tags.",
+        },
+        {
+            "name": "patch_entity",
+            "arguments": {
+                "entityType": "table",
+                "entityFqn": _DEMO_TABLE_FQN,
+                "approved_tags": [
+                    f"{_DEMO_TABLE_FQN}.{column}:PII.Sensitive" for column in _DEMO_PII_COLUMNS
+                ],
+                # Batch patch proposal for the three PII spot-check columns in seed/customer_db.json.
+                "patch": [
+                    {
+                        "op": "add",
+                        "path": "/columns/3/tags/-",
+                        "value": {"tagFQN": "PII.Sensitive"},
+                    },
+                    {
+                        "op": "add",
+                        "path": "/columns/4/tags/-",
+                        "value": {"tagFQN": "PII.Sensitive"},
+                    },
+                    {
+                        "op": "add",
+                        "path": "/columns/5/tags/-",
+                        "value": {"tagFQN": "PII.Sensitive"},
+                    },
+                ],
+            },
+            "rationale": "Propose batch PII tagging for email/phone/ssn via HITL gate.",
+        },
+    ]
+
 
 async def select_tools(state: AgentState) -> AgentState:
     """Node 2: Select tools — deterministic fast-path first, LLM fallback second.
@@ -235,6 +295,16 @@ async def select_tools(state: AgentState) -> AgentState:
     log.info("agent.select_tools.start", request_id=state["request_id"], intent=state["intent"])
 
     # --- Fast path: deterministic routing ---
+    if state.get("intent") == "classify":
+        proposals = _auto_classification_proposals()
+        state["tool_proposals"] = proposals
+        log.info(
+            "agent.select_tools.classify_chain",
+            tool_count=len(proposals),
+            tools=[p["name"] for p in proposals],
+        )
+        return state
+
     from copilot.services.nl_router import route_query
 
     route = route_query(state["user_message"], intent=state.get("intent"))
@@ -353,6 +423,10 @@ async def validate_proposal(state: AgentState) -> AgentState:
             expires_at=datetime.now(UTC) + CONFIRMATION_TTL if risk != RiskLevel.READ else None,
         )
         validated.append(tcp)
+        await _mark_scanned_if_possible(tcp)
+
+    if state.get("intent") == "classify" and not validated:
+        state["evidence_gap"] = True
 
     state["tool_proposals"] = validated
     log.info("agent.validate_proposal.complete", validated_count=len(validated))
@@ -391,7 +465,7 @@ async def hitl_gate(state: AgentState) -> AgentState:
         # Return the first write proposal as pending_confirmation
         pending = write_proposals[0]
         state["pending_confirmation"] = pending.model_dump(mode="json")
-        session_store.store_proposal(pending)
+        await _mark_suggested_if_possible(pending)
         log.info(
             "agent.hitl_gate.confirmation_required",
             tool=str(pending.tool_name),
@@ -405,6 +479,42 @@ async def hitl_gate(state: AgentState) -> AgentState:
         writes=len(write_proposals),
     )
     return state
+
+
+async def _mark_scanned_if_possible(proposal: ToolCallProposal) -> None:
+    fqn = _extract_entity_fqn(proposal.arguments)
+    if not fqn:
+        return
+    try:
+        await governance_store.transition(
+            fqn,
+            GovernanceState.SCANNED,
+            evidence=f"validated:{proposal.tool_name}",
+        )
+    except governance_store.GovernanceTransitionError:
+        log.debug("agent.governance.scanned.skip", fqn=fqn)
+
+
+async def _mark_suggested_if_possible(proposal: ToolCallProposal) -> None:
+    fqn = _extract_entity_fqn(proposal.arguments)
+    if not fqn:
+        return
+    try:
+        await governance_store.transition(
+            fqn,
+            GovernanceState.SUGGESTED,
+            evidence=f"pending_confirmation:{proposal.tool_name}",
+        )
+    except governance_store.GovernanceTransitionError:
+        log.debug("agent.governance.suggested.skip", fqn=fqn)
+
+
+def _extract_entity_fqn(arguments: dict[str, Any]) -> str | None:
+    for key in ("entityFqn", "entity_fqn", "fqn", "fullyQualifiedName"):
+        value = arguments.get(key)
+        if isinstance(value, str) and value.strip():
+            return value.strip()
+    return None
 
 
 # =============================================================================
@@ -433,7 +543,7 @@ async def execute_tool(state: AgentState) -> AgentState:
             proposal_id=proposal.proposal_id,
             request_id=proposal.request_id,
             tool_name=proposal.tool_name,
-            arguments_redacted=_redact_arguments(proposal.arguments),
+            arguments_redacted=redact_tool_arguments(proposal.arguments),
             confirmed_by_user=False,
             started_at=start,
         )
@@ -453,7 +563,7 @@ async def execute_tool(state: AgentState) -> AgentState:
             record.completed_at = end
             record.duration_ms = int((end - start).total_seconds() * 1000)
             record.success = True
-            record.response_summary = _summarize_result(result)
+            record.response_summary = summarize_tool_result(result)
             results.append(result)
 
         except McpAuthFailed as exc:
@@ -535,7 +645,15 @@ async def format_response(state: AgentState) -> AgentState:
 
     # Build context for the formatter
     context_parts = [f"User question: {state['user_message']}"]
-    context_parts.append(f"Classified intent: {state.get('intent', 'unknown')}")
+    intent = state.get("intent", "unknown")
+    context_parts.append(f"Classified intent: {intent}")
+
+    if state.get("evidence_gap"):
+        context_parts.append(
+            "\nIMPORTANT: The system could not find enough evidence to classify this. "
+            "Please admit humility, state what is missing, and ask the user for more context. "
+            "Do not fabricate tags."
+        )
 
     results = state.get("tool_results", [])
     if results:
@@ -551,6 +669,39 @@ async def format_response(state: AgentState) -> AgentState:
             f"Risk: {pending.get('risk_level', 'unknown')}\n"
             f"Tell the user they need to confirm this operation."
         )
+
+    # Causal impact for classify intent
+    if intent == "classify" and results:
+        # Check if lineage info is present in the results
+        for result in results:
+            if "downstreamEdges" in str(result) or "downstream" in str(result):
+                context_parts.append(
+                    "\nIMPORTANT: Causal downstream impact detected. "
+                    "Explain what breaks if this entity is untagged (e.g., Tier 1 assets might be at risk)."
+                )
+                break
+
+    # Similarity scoring
+    candidate_fqns = []
+    for proposal in state.get("tool_proposals", []) + ([pending] if pending else []):
+        fqn = _extract_entity_fqn(
+            proposal.get("arguments", {}) if isinstance(proposal, dict) else proposal.arguments
+        )
+        if fqn:
+            candidate_fqns.append(fqn)
+
+    if candidate_fqns:
+        from copilot.services.similarity import compute_similarity
+
+        approved_fqns = await governance_store.get_approved_fqns()
+        for fqn in candidate_fqns:
+            score = compute_similarity(fqn, approved_fqns)
+            if score > 0.85:
+                context_parts.append(
+                    f"\nOpinionated Governance Assistant: Entity '{fqn}' is highly similar (score: {score:.2f}) "
+                    f"to previously approved entities. Please highlight this in your response."
+                )
+                break
 
     try:
         result = await openai_client.call_chat(
@@ -681,6 +832,7 @@ async def run_chat_turn(
                 "tool_name": r.get("tool_name", ""),
                 "duration_ms": r.get("duration_ms"),
                 "success": r.get("success"),
+                "error_code": r.get("error_code"),
             }
             for r in final_state.get("tool_records", [])
         ],
@@ -694,6 +846,8 @@ async def run_chat_turn(
     pending = final_state.get("pending_confirmation")
     if pending:
         response["pending_confirmation"] = pending
+        tcp = ToolCallProposal.model_validate(pending)
+        await set_pending(UUID(final_state["session_id"]), tcp)
 
     log.info("agent.run_chat_turn.complete", request_id=final_state["request_id"])
     return response
@@ -702,28 +856,6 @@ async def run_chat_turn(
 # =============================================================================
 # Helpers
 # =============================================================================
-
-
-def _redact_arguments(arguments: dict[str, Any]) -> dict[str, Any]:
-    """Redact potentially sensitive values from tool arguments for audit logs."""
-    redacted = {}
-    sensitive_keys = {"token", "password", "secret", "api_key", "jwt"}
-    for key, value in arguments.items():
-        if key.lower() in sensitive_keys:
-            redacted[key] = "***REDACTED***"
-        elif isinstance(value, str) and len(value) > 200:
-            redacted[key] = value[:200] + "...[truncated]"
-        else:
-            redacted[key] = value
-    return redacted
-
-
-def _summarize_result(result: dict[str, Any]) -> str:
-    """Create a brief summary of a tool call result for the audit log."""
-    summary = json.dumps(result, default=str)
-    if len(summary) > 500:
-        return summary[:497] + "..."
-    return summary
 
 
 def _fallback_format(

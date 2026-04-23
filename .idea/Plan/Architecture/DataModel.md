@@ -61,6 +61,22 @@ class ToolCallProposal(BaseModel):
 
 `hard_write` ALWAYS requires user confirmation in the UI before execution. `soft_write` requires confirmation in v1 (we may relax in v2 with policy rules). `read` executes without prompt.
 
+### `PendingSession` (session store — P2-19)
+
+In-memory record keyed by `session_id` (string UUID) for `POST /chat/confirm` / `POST /chat/cancel`. **Implemented** in [`src/copilot/services/sessions.py`](../../src/copilot/services/sessions.py) with canonical Pydantic model in [`src/copilot/models/chat.py`](../../src/copilot/models/chat.py). Not persisted across process restart.
+
+```python
+from pydantic import BaseModel, Field
+from datetime import datetime
+from uuid import UUID
+
+class PendingSession(BaseModel):
+    session_id: UUID
+    pending: "ToolCallProposal | None" = None
+    expires_at: datetime | None = None   # aligns with APIContract confirmation TTL (5 min)
+    updated_at: datetime
+```
+
 ### `ToolCallRecord`
 
 Append-only entry for the audit log. One per executed tool call.
@@ -125,6 +141,58 @@ class LineageNode(BaseModel):
     owners: list[str] = []
     hops_from_root: int
 ```
+
+### `GovernanceState` (enum)
+
+Per-entity lifecycle for the governance engine ([FeatureDev/GovernanceEngine.md](../FeatureDev/GovernanceEngine.md)). Stored in-memory in v1; optionally mirrored to OM custom properties. **Implemented** in [`src/copilot/models/governance_state.py`](../../src/copilot/models/governance_state.py) (`GovernanceState`, `ALLOWED_TRANSITIONS`).
+
+```python
+from enum import StrEnum
+
+class GovernanceState(StrEnum):
+    UNKNOWN = "unknown"
+    SCANNED = "scanned"
+    SUGGESTED = "suggested"
+    APPROVED = "approved"
+    ENFORCED = "enforced"
+    DRIFT_DETECTED = "drift_detected"
+    REMEDIATED = "remediated"
+```
+
+Valid transitions are enforced in `governance_store` — see GovernanceEngine spec for `ALLOWED_TRANSITIONS`.
+
+### `EntityGovernanceRecord`
+
+One row per **entity FQN** under governance. **Implemented** in [`src/copilot/models/governance_record.py`](../../src/copilot/models/governance_record.py); rows are held by [`src/copilot/services/governance_store.py`](../../src/copilot/services/governance_store.py).
+
+```python
+class EntityGovernanceRecord(BaseModel):
+    fqn: str
+    state: GovernanceState = GovernanceState.UNKNOWN
+    updated_at: datetime
+    lineage_snapshot_hash: str | None = None      # hash of normalized lineage payload at last approve/enforce
+    approved_tags: frozenset[str] = frozenset() # tags last acknowledged at approve/enforce
+    last_evidence: str | None = None              # short audit string; max 500 chars
+```
+
+### Drift report (service shape)
+
+```python
+class DriftReport(BaseModel):
+    fqn: str
+    signals: list[str]                            # e.g. lineage_changed, tags_removed:PII.Sensitive
+    compared_at: datetime
+```
+
+### LangGraph `AgentState` extensions
+
+The runtime `AgentState` TypedDict in [`src/copilot/services/agent.py`](../../src/copilot/services/agent.py) gains optional keys:
+
+| Key            | Type   | Meaning                                                                                                                        |
+| -------------- | ------ | ------------------------------------------------------------------------------------------------------------------------------ |
+| `evidence_gap` | `bool` | `True` when classify intent produced **no** valid tool proposals after validation — response must admit insufficient evidence. |
+
+These keys are **optional** (`total=False`) so partial graph runs remain valid.
 
 ### Error envelope
 

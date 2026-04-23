@@ -4,6 +4,10 @@ All notable changes to this project are documented here. Format follows [Keep a 
 
 ## [Unreleased]
 
+### Verified
+
+- **P1-14 / [#27](https://github.com/GunaPalanivel/openmetadata-mcp-agent/issues/27)** — Vite dev server on `:3000` (`ui/vite.config.ts`); committed `ui/package-lock.json`; CI `ui-build` and `make install_ui` use `npm ci`; `ui/public/favicon.svg`; `ui/README.md` runbook; `@types/react-dom` aligned with React 18. PR: [#73](https://github.com/GunaPalanivel/openmetadata-mcp-agent/pull/73).
+
 ### Added
 
 - **P1-12 / [#25](https://github.com/GunaPalanivel/openmetadata-mcp-agent/issues/25)** — `scripts/generate_bot_jwt.py` and `make om-gen-token` target to automate Bot JWT generation from a running OM instance. Connects to OM REST API, authenticates as admin, looks up `ingestion-bot`, and generates a configurable-expiry JWT printed to stdout for `.env` pasting. Docs updated in `docs/getting-started.md` (Step 3).

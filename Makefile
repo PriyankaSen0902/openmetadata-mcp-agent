@@ -7,7 +7,7 @@
 # =============================================================================
 
 .DEFAULT_GOAL := help
-.PHONY: help install install_dev_env install_ui install-hooks \
+.PHONY: help setup install install_dev_env install_ui install-hooks \
         om-start om-stop om-health om-logs om-gen-token \
         demo demo-cached demo-fresh \
         restart-agent test test-unit test-integration test-security test-arch \
@@ -20,6 +20,7 @@ help:
 	@echo "openmetadata-mcp-agent — common targets"
 	@echo ""
 	@echo "  Setup:"
+	@echo "    make setup                Copy .env.example -> .env if missing (then edit secrets)"
 	@echo "    make install              Install runtime + dev dependencies (agent + UI)"
 	@echo "    make install_dev_env      Alias for 'make install' (matches OM upstream Makefile)"
 	@echo "    make install_ui           Install UI dependencies only"
@@ -31,6 +32,7 @@ help:
 	@echo "    make om-health           Check if OpenMetadata health endpoint is responding"
 	@echo "    make om-logs             Tail OpenMetadata server logs"
 	@echo "    make om-gen-token        Generate Bot JWT for AI_SDK_TOKEN (.env)"
+	@echo "    (load_seed / trigger_om_search_reindex load repo .env automatically)"
 	@echo ""
 	@echo "  Run:"
 	@echo "    make demo                 Start agent backend + UI for live demo"
@@ -57,10 +59,14 @@ help:
 # -----------------------------------------------------------------------------
 # Install
 # -----------------------------------------------------------------------------
+setup:
+	@test -f .env && echo ".env already exists — not overwriting. Edit it with real secrets." || cp .env.example .env
+	@test -f .env && echo "Next: edit .env (AI_SDK_TOKEN, OPENAI_API_KEY). Never commit .env." || echo "Created .env from .env.example — edit AI_SDK_TOKEN and OPENAI_API_KEY before make demo."
+
 install:
 	pip install -e ".[dev]"
 	@$(MAKE) install_ui
-	@echo "Installed. Next: cp .env.example .env && edit; then make demo"
+	@echo "Installed. Next: make setup && edit .env; then make demo"
 
 install_dev_env: install   ## Alias for OpenMetadata-upstream contributors
 
@@ -107,6 +113,8 @@ demo-cached:
 demo-fresh:
 	@echo "Dropping seed data and reloading ..."
 	python scripts/load_seed.py --drop-existing
+	@echo "Triggering OpenMetadata search reindex (tables may not appear in search_metadata until ES catches up) ..."
+	@python scripts/trigger_om_search_reindex.py || echo "WARNING: search reindex failed — run scripts/trigger_om_search_reindex.py manually after OM is healthy."
 	@$(MAKE) restart-agent
 
 restart-agent:

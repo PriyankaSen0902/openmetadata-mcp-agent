@@ -18,6 +18,10 @@
 
 CI runs all of the above per [Security/CIHardening.md](../Security/CIHardening.md). Local dev: `make ci-local`.
 
+### Sixteen-issue program linkage
+
+When closing the **16 engineering** issues ([FeatureDev/GovernanceEngine.md](../FeatureDev/GovernanceEngine.md)), each PR should reference its issue number. Gate exit for Phase 2–3 product work is **not** declared until the issues in **W1–W3** that own the touched surfaces are closed or explicitly descoped in [TaskSync.md](../TaskSync.md) with a reason.
+
 ---
 
 ## Gate 1: Architecture Integrity Review

@@ -1,10 +1,29 @@
 # TaskSync — Master Task Tracker
 
-> **Last updated**: April 19, 2026 (Day 3)
-> **LLM Provider**: ✅ OpenAI GPT-4o-mini (free Codex credits)
+> **Last updated**: April 23, 2026 — aligned with repo + [Progress.md](./Progress.md); **Phase 2b** governance tasks; **§Sixteen-issue engineering program** + [EngineeringIssueTemplate.md](./PR-Review/EngineeringIssueTemplate.md). **Codebase snapshot — 2026-04-23** > **LLM Provider**: ✅ OpenAI GPT-4o-mini (free Codex credits)
 > **Repo Strategy**: ✅ NEW standalone repo (`openmetadata-mcp-agent`) + fork for GFI only
 > **Plan/ location**: ✅ `.idea/Plan/` stays local (agent command center)
 > **All tasks ordered by priority. Check off as you complete them.**
+
+**Quick pointers (code today):** Run the agent with `uvicorn copilot.api.main:app` (not root `main.py`). MCP: `src/copilot/clients/om_mcp.py` + env **`OM_MCP_HTTP_PATH`** (default `/mcp`). Seed: `scripts/load_seed.py` + `python-dotenv` + `dataLength` for OM 1.6; search index: `scripts/trigger_om_search_reindex.py`; `make demo-fresh` chains reindex after load. UI: [`ui/README.md`](../../ui/README.md) — **`npm ci`** / **`npm run dev`** on **`http://localhost:3000`** (Vite `127.0.0.1:3000`); committed **`ui/package-lock.json`**, **`ui/public/favicon.svg`**, CI **`ui-build`** uses **`npm ci`**; P1-14 / [#27](https://github.com/GunaPalanivel/openmetadata-mcp-agent/issues/27) — PR [\#73](https://github.com/GunaPalanivel/openmetadata-mcp-agent/pull/73) (merge when green).
+
+---
+
+## Sixteen-issue engineering program (docs excluded)
+
+> **Rule**: Exactly **16 closed GitHub issues** in `GunaPalanivel/openmetadata-mcp-agent` = engineering complete for the hackathon product bar. **README, submission form, narrative polish, and video script** are **not** in the 16 — they stay in Phase 3–4 tasks below.
+
+| Wave   | Window       | Close (GitHub) | Exit                                                                                           |
+| ------ | ------------ | ---------------- | ---------------------------------------------------------------------------------------------- |
+| **W1** | Now → Apr 24 | [#75](https://github.com/GunaPalanivel/openmetadata-mcp-agent/issues/75)–[#79](https://github.com/GunaPalanivel/openmetadata-mcp-agent/issues/79) + start [#80](https://github.com/GunaPalanivel/openmetadata-mcp-agent/issues/80) | HITL spine: P2-19…P2-24 per [FeatureDev/GovernanceEngine.md](./FeatureDev/GovernanceEngine.md) |
+| **W2** | Apr 24–25    | [#80](https://github.com/GunaPalanivel/openmetadata-mcp-agent/issues/80)–[#85](https://github.com/GunaPalanivel/openmetadata-mcp-agent/issues/85) | Auto-classify, lineage, NL query, UI + HITL modal, OM-native UI                                |
+| **W3** | Apr 25–26    | [#86](https://github.com/GunaPalanivel/openmetadata-mcp-agent/issues/86)–[#90](https://github.com/GunaPalanivel/openmetadata-mcp-agent/issues/90) | Multi-MCP, integration/security/coverage, CI gaps, demo automation, **E2E Playwright**         |
+
+**Issue index**: [SPRINT16_GITHUB_ISSUES.md](./SPRINT16_GITHUB_ISSUES.md) · [SPRINT16_GITHUB_ISSUES.json](./SPRINT16_GITHUB_ISSUES.json) · Creator script: not committed in this repo; use the issue index files above as the canonical source.
+
+**Issue bodies**: Mandatory template — [PR-Review/EngineeringIssueTemplate.md](./PR-Review/EngineeringIssueTemplate.md) (Context, What to do, Done when, Depends on, Unblocks, Acceptance criteria with PRD + APIContract + tests, References).
+
+**Superseded**: GOV [#60](https://github.com/GunaPalanivel/openmetadata-mcp-agent/issues/60)–[#66](https://github.com/GunaPalanivel/openmetadata-mcp-agent/issues/66) and legacy Phase-1 open batch — closed with pointer to **#75–#90** (see this PR).
 
 ---
 
@@ -14,16 +33,16 @@
 
 ### OMH-GSA (@GunaPalanivel) — CRITICAL
 
-- [ ] `P0-01` 🔴 Post intent comment on [#26645](https://github.com/open-metadata/OpenMetadata/issues/26645) (Multi-MCP Orchestrator) and start building immediately — competing prototypes already exist (@0xSaksham LangGraph, @MonotonousHarsh, @afifasyed123)
-- [ ] `P0-02` 🔴 Post intent comment on [#26608](https://github.com/open-metadata/OpenMetadata/issues/26608) (Chat App) and start building immediately — @thisisvaishnav already shared a [working Loom demo](https://www.loom.com/share/c2fc5f9fb9314c279faa1fc9967576f3) using Claude + MCP tool chaining
-- [ ] `P0-03` Create NEW repo: `GunaPalanivel/openmetadata-mcp-agent` on GitHub (public, Apache 2.0)
-- [ ] `P0-04` Redeem OpenAI API credits at platform.openai.com/promotions
-- [ ] `P0-05` Generate OpenAI API key, save in `.env`
-- [ ] `P0-06` Add all team as collaborators: @PriyankaSen0902, @aravindsai003, @5009226-bhawikakumari
-- [ ] `P0-07` Drop the `CLAUDE.md` template from [Architecture/CLAUDETemplate.md](./Architecture/CLAUDETemplate.md) into the new repo root so all future AI sessions inherit the architectural contract
-- [ ] `P0-08` Star [open-metadata/OpenMetadata](https://github.com/open-metadata/OpenMetadata) — hackathon side-quest requirement (all 4 team members)
-- [ ] `P0-09` Read [Project/Discovery.md](./Project/Discovery.md), [Project/NFRs.md](./Project/NFRs.md), [Architecture/CodingStandards.md](./Architecture/CodingStandards.md), and [Security/PromptInjectionMitigation.md](./Security/PromptInjectionMitigation.md) — every team member, before writing any code (45 min total)
-- [ ] `P0-10` Every team member: after `make install_dev_env`, run `pip install pre-commit && pre-commit install && pre-commit run --all-files`. Same hooks as CI; commits that skip them will fail PR review. See [Validation/SetupGuide.md §Step 4b](./Validation/SetupGuide.md) and [`CONTRIBUTING.md`](../../CONTRIBUTING.md).
+- [x] `P0-01` 🔴 Post intent comment on [#26645](https://github.com/open-metadata/OpenMetadata/issues/26645) (Multi-MCP Orchestrator) and start building immediately — competing prototypes already exist (@0xSaksham LangGraph, @MonotonousHarsh, @afifasyed123)
+- [x] `P0-02` 🔴 Post intent comment on [#26608](https://github.com/open-metadata/OpenMetadata/issues/26608) (Chat App) and start building immediately — @thisisvaishnav already shared a [working Loom demo](https://www.loom.com/share/c2fc5f9fb9314c279faa1fc9967576f3) using Claude + MCP tool chaining
+- [x] `P0-03` Create NEW repo: `GunaPalanivel/openmetadata-mcp-agent` on GitHub (public, Apache 2.0)
+- [ ] `P0-04` Redeem OpenAI API credits at platform.openai.com/promotions _(per-person / optional for Codex path)_
+- [ ] `P0-05` Generate OpenAI API key, save in `.env` _(blocked until P0-04 if using paid promo only)_
+- [x] `P0-06` Add all team as collaborators: @PriyankaSen0902, @aravindsai003, @5009226-bhawikakumari
+- [x] `P0-07` Drop the `CLAUDE.md` template from [Architecture/CLAUDETemplate.md](./Architecture/CLAUDETemplate.md) into the new repo root so all future AI sessions inherit the architectural contract
+- [x] `P0-08` Star [open-metadata/OpenMetadata](https://github.com/open-metadata/OpenMetadata) — hackathon side-quest requirement (all 4 team members)
+- [x] `P0-09` Read [Project/Discovery.md](./Project/Discovery.md), [Project/NFRs.md](./Project/NFRs.md), [Architecture/CodingStandards.md](./Architecture/CodingStandards.md), and [Security/PromptInjectionMitigation.md](./Security/PromptInjectionMitigation.md) — every team member, before writing any code (45 min total)
+- [x] `P0-10` Every team member: after `make install_dev_env`, run `pip install pre-commit && pre-commit install && pre-commit run --all-files`. Same hooks as CI; commits that skip them will fail PR review. See [Validation/SetupGuide.md §Step 4b](./Validation/SetupGuide.md) and [`CONTRIBUTING.md`](../../CONTRIBUTING.md).
 
 ### Intent Comment Template (for #26645 / #26608):
 
@@ -49,8 +68,8 @@ We'll link the final submission + demo video before the Apr 26 deadline.
 
 ### OMH-GSA (@GunaPalanivel) — Architect
 
-- [ ] `P1-01` Init `openmetadata-mcp-agent` repo with `pyproject.toml`
-  - Deps (Phase 1): `data-ai-sdk[langchain]`, `langchain-openai`, `langgraph`, `fastapi`, `uvicorn`
+- [x] `P1-01` Init `openmetadata-mcp-agent` repo with `pyproject.toml`
+  - Deps (Phase 1): `data-ai-sdk[langchain]`, `langchain-openai`, `langgraph`, `fastapi`, `uvicorn`, `python-dotenv` (for seed/reindex scripts)
   - Note: `data-ai-sdk[langchain]` already provides `client.mcp.as_langchain_tools()`, so `langchain-mcp-adapters` is **not** needed for OM. Add it in Phase 3 only when wiring the GitHub MCP server.
 - [x] `P1-02` Create basic project structure (see [FeatureDev/Phase1RepoSkeleton.md](./FeatureDev/Phase1RepoSkeleton.md) for planned-vs-actual, drift map, and verification):
   ```
@@ -75,41 +94,41 @@ We'll link the final submission + demo video before the Apr 26 deadline.
   ├── docs/
   └── seed/
   ```
-- [ ] `P1-03` Implement MCP client (`mcp_client.py`): connect to OM, call `search_metadata`
-- [ ] `P1-04` Build LangGraph agent skeleton: NL input → intent classify → tool select → respond
-- [ ] `P1-05` Verify: `python -c "from copilot.mcp_client import ...; search('tables')"` returns data
+- [x] `P1-03` Implement MCP client: [`src/copilot/clients/om_mcp.py`](../../src/copilot/clients/om_mcp.py) (not `mcp_client.py` — wraps `data-ai-sdk`, `call_tool`, typed helpers; **`OM_MCP_HTTP_PATH`** for non-default MCP route)
+- [x] `P1-04` Build LangGraph agent skeleton: [`src/copilot/services/agent.py`](../../src/copilot/services/agent.py) — NL → intent → tools → format
+- [x] `P1-05` Verify: use `python scripts/smoke_test.py` (with `--include-om` when OM + agent are up); MCP success still depends on OM URL/token/index
 - [ ] `P1-06` Review all Phase 1 PRs from team
 
 ### OMH-PSTL (@PriyankaSen0902) — Senior Builder
 
-- [ ] `P1-07` Study `data-ai-sdk` + `langchain-openai` docs — document tool schemas
-- [ ] `P1-08` Map all 12 MCP tools to governance use-cases → update `ExistingMCPAudit.md`. Split: **7 typed enum tools** (`SEARCH_METADATA`, `GET_ENTITY_DETAILS`, `GET_ENTITY_LINEAGE`, `CREATE_GLOSSARY`, `CREATE_GLOSSARY_TERM`, `CREATE_LINEAGE`, `PATCH_ENTITY`) reachable via `MCPTool.X`; **5 string-callable tools** (`semantic_search`, `get_test_definitions`, `create_test_case`, `create_metric`, `root_cause_analysis`) reachable via `client.mcp.call_tool("name", args)`
-- [ ] `P1-09` Create typed wrapper for top 6 tools (Pydantic models for params + responses)
-- [ ] `P1-10` Write 10+ unit tests for MCP client wrapper (mock responses)
+- [x] `P1-07` Study `data-ai-sdk` + `langchain-openai` docs — document tool schemas (see [DataFindings/ExistingMCPAudit.md](./DataFindings/ExistingMCPAudit.md))
+- [x] `P1-08` Map all 12 MCP tools to governance use-cases → update `ExistingMCPAudit.md`. Split: **7 typed enum tools** (`SEARCH_METADATA`, `GET_ENTITY_DETAILS`, `GET_ENTITY_LINEAGE`, `CREATE_GLOSSARY`, `CREATE_GLOSSARY_TERM`, `CREATE_LINEAGE`, `PATCH_ENTITY`) reachable via `MCPTool.X`; **5 string-callable tools** (`semantic_search`, `get_test_definitions`, `create_test_case`, `create_metric`, `root_cause_analysis`) reachable via `client.mcp.call_tool("name", args)`
+- [x] `P1-09` Create typed wrapper for top 6 tools — [`src/copilot/models/mcp_tools.py`](../../src/copilot/models/mcp_tools.py)
+- [x] `P1-10` Write 10+ unit tests for MCP client wrapper — [`tests/unit/test_om_mcp.py`](../../tests/unit/test_om_mcp.py) (+ related)
 
 ### OMH-ATL (@aravindsai003) — Builder
 
-- [ ] `P1-11` Docker: get local OM instance running at `:8585` (use `docker/development/`)
-- [ ] `P1-12` Verify Swagger at `localhost:8585/swagger.html`, generate Bot JWT
-- [ ] `P1-13` Pre-seed OM with **50+ realistic tables** (use sample data or CSV import)
-- [ ] `P1-14` Scaffold React chat UI (Vite + React)
-- [ ] `P1-15` Document setup in `README.md` — must be clone → run in <5 min
+- [x] `P1-11` Docker: local OM at `:8585` via [`infrastructure/docker-compose.om.yml`](../../infrastructure/docker-compose.om.yml) (server **1.6.2**; not legacy `docker/development/` path)
+- [x] `P1-12` Bot JWT: [`scripts/generate_bot_jwt.py`](../../scripts/generate_bot_jwt.py) + `.env` / `make om-gen-token`
+- [x] `P1-13` Pre-seed OM: [`seed/customer_db.json`](../../seed/customer_db.json) + [`scripts/load_seed.py`](../../scripts/load_seed.py) (dotenv + `dataLength` for OM 1.6); optional [`scripts/trigger_om_search_reindex.py`](../../scripts/trigger_om_search_reindex.py)
+- [x] `P1-14` Confirm React chat UI on `:3000` ([\#27](https://github.com/GunaPalanivel/openmetadata-mcp-agent/issues/27)): Vite scaffold + [`ui/README.md`](../../ui/README.md) verification checklist + `ui/package-lock.json` + `ui/public/favicon.svg` + `@types/react-dom` aligned to React 18; PR [\#73](https://github.com/GunaPalanivel/openmetadata-mcp-agent/pull/73)
+- [x] `P1-15` Document setup: `README.md`, [`docs/getting-started.md`](../../docs/getting-started.md)
 
 ### OMH-BSE (@5009226-bhawikakumari) — Delivery
 
-- [ ] `P1-16` Write project README.md (1-liner, features, architecture placeholder, setup steps); seed with the AI Disclosure line
+- [x] `P1-16` Write project README.md (1-liner, features, architecture placeholder, setup steps); seed with the AI Disclosure line
 - [ ] `P1-17` Daily monitor: [unassigned hackathon GFIs](https://github.com/open-metadata/OpenMetadata/issues?q=is%3Aopen+is%3Aissue+label%3Agood-first-issue+label%3Ahackathon+no%3Aassignee) + ping @PubChimps on OM Slack per [DataFindings/GoodFirstIssues.md](./DataFindings/GoodFirstIssues.md)
-- [ ] `P1-18` Add AI disclosure to README: "Built with OpenAI GPT-4o-mini via LangGraph + data-ai-sdk"
+- [x] `P1-18` Add AI disclosure to README: "Built with OpenAI GPT-4o-mini via LangGraph + data-ai-sdk"
 - [ ] `P1-19` Draft demo narrative outline (refresh [Demo/Narrative.md](./Demo/Narrative.md) with measurable outcomes from [Project/PRD.md](./Project/PRD.md))
 - [ ] `P1-20` Daily refresh of [Demo/CompetitiveMatrix.md](./Demo/CompetitiveMatrix.md) — scan #26608, #26645, #26609, #26646 for new artifacts
 
 ### Phase 1 Exit Gate
 
-- [ ] MCP client connects and returns search results
-- [ ] Chat UI scaffold renders on localhost
-- [ ] README + CLAUDE.md present in new repo
-- [ ] [Validation/QualityGates.md](./Validation/QualityGates.md) Gate 0 (automated checks) + Gate 1 (Architecture Integrity) all green
-- [ ] Intent comments posted on #26645 + #26608
+- [/] MCP client **implemented**; live search results require working OM MCP route (**`OM_MCP_HTTP_PATH`**), token, and ES index (see Progress snapshot)
+- [x] Chat UI scaffold in repo (`ui/`) with lockfile-driven **`npm ci`** and P1-14 runbook in [`ui/README.md`](../../ui/README.md) (see [\#73](https://github.com/GunaPalanivel/openmetadata-mcp-agent/pull/73))
+- [x] README + CLAUDE.md present in new repo
+- [/] [Validation/QualityGates.md](./Validation/QualityGates.md) Gate 0 + Gate 1 — verify in CI / locally before demo
+- [x] Intent comments posted on #26645 + #26608
 
 ---
 
@@ -119,20 +138,20 @@ We'll link the final submission + demo video before the Apr 26 deadline.
 
 ### OMH-GSA (@GunaPalanivel)
 
-- [ ] `P2-01` **Auto-classification flow**: scan tables → GPT-4o-mini classifies columns → suggest PII tags → user confirms → `patch_entity` applies
+- [x] `P2-01` **Auto-classification flow**: classify intent enforces `search_metadata` → `get_entity_details` → `patch_entity` chain with HITL pending_confirmation and seed spot-check columns (`customers.email`, `customers.phone`, `customers.ssn`)
 - [ ] `P2-02` **Lineage impact analysis**: NL query → `get_entity_lineage` → GPT translates to human-readable report with Tier warnings
 - [ ] `P2-03` Multi-step agent logic: ensure agent can chain 3+ tool calls in one conversation turn
-- [ ] `P2-04` FastAPI backend: `POST /chat` endpoint wired to LangGraph agent
+- [x] `P2-04` FastAPI backend: `POST /api/v1/chat` wired to LangGraph agent ([`src/copilot/api/chat.py`](../../src/copilot/api/chat.py))
 - [ ] `P2-05` Review all Phase 2 PRs — enforce `PR-Review/Checklist.md`
 
 ### OMH-PSTL (@PriyankaSen0902)
 
 - [x] `P2-06` **NL query engine**: text → intent → correct MCP tool → structured Markdown response
 - [ ] `P2-07` **Governance summary**: scan catalog → tag coverage %, PII exposure %, unclassified count
-- [ ] `P2-08` Error handling per [NFRs.md §The 5 Things AI Never Adds](./Project/NFRs.md): retry (`tenacity`) + circuit breaker (`pybreaker`) + structured error envelope on every MCP call
+- [x] `P2-08` Error handling per [NFRs.md §The 5 Things AI Never Adds](./Project/NFRs.md): retry (`tenacity`) + circuit breaker (`pybreaker`) + structured errors on MCP (`om_mcp.py`); HTTP error envelope middleware in place
 - [ ] `P2-09` Integration tests: agent → MCP client → mock OM responses; include circuit-breaker-open paths
 - [ ] `P2-10b` Implement `services/prompt_safety.neutralize()` per [Security/PromptInjectionMitigation.md §Layer 1](./Security/PromptInjectionMitigation.md); `tests/security/test_prompt_injection.py` covers all 5 patterns
-- [ ] `P2-11b` Implement `observability/redact.py` and `middleware/error_envelope.py` per [Security/SecretsHandling.md](./Security/SecretsHandling.md)
+- [x] `P2-11b` Implement `observability/redact.py` and `middleware/error_envelope.py` per [Security/SecretsHandling.md](./Security/SecretsHandling.md)
 
 ### OMH-ATL (@aravindsai003)
 
@@ -140,7 +159,7 @@ We'll link the final submission + demo video before the Apr 26 deadline.
 - [ ] `P2-11` Render structured responses: tables, tag badges, lineage trees; use `react-markdown` + `rehype-sanitize` (NEVER `dangerouslySetInnerHTML`) per [Architecture/CodingStandards.md](./Architecture/CodingStandards.md)
 - [ ] `P2-12` Human-in-the-loop confirmation modal: shows tool name, risk-level badge, summary + entity-FQN list, Confirm/Cancel — per [Architecture/APIContract.md](./Architecture/APIContract.md) `pending_confirmation` envelope
 - [ ] `P2-13` E2E test: type query → see result in UI; include the prompt-injection demo flow per [Project/JudgePersona.md §Moment 3](./Project/JudgePersona.md)
-- [ ] `P2-13b` Build + check in `seed/customer_db.json` (50+ tables incl. PII + Tier1 + 2 prompt-injection planted) per [Demo/FailureRecovery.md §The Frozen Seed Dataset](./Demo/FailureRecovery.md); write `scripts/load_seed.py`
+- [x] `P2-13b` Build + check in `seed/customer_db.json` (50+ tables incl. PII + Tier1 + 2 prompt-injection planted) per [Demo/FailureRecovery.md §The Frozen Seed Dataset](./Demo/FailureRecovery.md); [`scripts/load_seed.py`](../../scripts/load_seed.py) (+ reindex helper)
 
 ### OMH-BSE (@5009226-bhawikakumari)
 
@@ -149,6 +168,19 @@ We'll link the final submission + demo video before the Apr 26 deadline.
 - [ ] `P2-16` Refresh demo script ([Demo/Narrative.md](./Demo/Narrative.md)) with measurable outcomes from [Project/PRD.md](./Project/PRD.md)
 - [ ] `P2-17` Document all 12 MCP tools used in README; cite [DataFindings/ExistingMCPAudit.md §AI SDK Coverage](./DataFindings/ExistingMCPAudit.md) for the 7-typed/5-string-callable split
 - [ ] `P2-18` Daily refresh of [Demo/CompetitiveMatrix.md](./Demo/CompetitiveMatrix.md)
+
+### Phase 2b — Governance engine (catalog-backed lifecycle)
+
+> **Spec**: [FeatureDev/GovernanceEngine.md](./FeatureDev/GovernanceEngine.md) — canonical backlog. Informal `P0`–`P6` labels in [Task.md](../../Task.md) are **deprecated for execution**; use the task IDs below. **Merge order** and **16-issue GitHub budget** are in the spec.
+
+- [ ] `P2-19` Session-scoped pending proposals + wire `POST /api/v1/chat/confirm` and `POST /api/v1/chat/cancel` through **services** (replace stubs in [`src/copilot/api/chat.py`](../../src/copilot/api/chat.py))
+- [ ] `P2-20` `GovernanceState` + `governance_store` (`transition`, `get_or_create`, in-memory by FQN)
+- [ ] `P2-21` Integrate store into LangGraph: `validate_proposal` / `hitl_gate` / confirm path (state transitions)
+- [ ] `P2-22` OM write-back: async `patch_entity` custom properties on key transitions (`APPROVED`, `DRIFT_DETECTED`)
+- [ ] `P2-23` `drift.py`: lineage hash + tag diff signals vs live OM
+- [ ] `P2-24` FastAPI lifespan drift poll + **`GET /api/v1/governance/drift`** ([planned contract](./Architecture/APIContract.md))
+- [ ] `P2-25` `similarity.py` + optional opinionated context in `format_response`
+- [ ] `P2-26` Causal impact block + `evidence_gap` on `AgentState` / `format_response` (timebox if needed)
 
 ### Phase 2 Exit Gate
 

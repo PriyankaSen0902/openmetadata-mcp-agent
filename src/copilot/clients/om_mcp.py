@@ -25,12 +25,17 @@ SDK layout (data-ai-sdk 0.1.2):
   - ``ai_sdk.AISdk.mcp``         — MCPClient property
   - ``ai_sdk.mcp.models.MCPTool``— 11-member StrEnum (excludes create_metric)
   - ``ai_sdk.mcp._client.MCPError / MCPToolExecutionError`` — exceptions
+
+Before first ``AISdk`` construction, ``MCPClient._make_jsonrpc_request`` is patched
+once so POST uses ``Settings.om_mcp_http_path`` (``OM_MCP_HTTP_PATH``), because
+the SDK hardcodes ``/mcp`` which some OM builds reject with HTTP 405.
 """
 
 from __future__ import annotations
 
 import contextlib
 import time
+from collections.abc import Callable
 from functools import lru_cache
 from typing import Any, cast
 
@@ -77,6 +82,63 @@ __all__ = [
 
 log = get_logger(__name__)
 
+# data-ai-sdk hardcodes POST "/mcp" in MCPClient._make_jsonrpc_request. Some OM builds
+# return 405 there; OM_MCP_HTTP_PATH (see Settings.om_mcp_http_path) overrides the path.
+_mcp_jsonrpc_original: Callable[..., Any] | None = None
+_mcp_jsonrpc_patched: bool = False
+
+
+def _reset_mcp_jsonrpc_path_patch_for_tests() -> None:
+    """Undo MCP JSON-RPC path patch (pytest only — restores data-ai-sdk original)."""
+    global _mcp_jsonrpc_original, _mcp_jsonrpc_patched
+    if _mcp_jsonrpc_original is not None:
+        from ai_sdk.mcp import _client as mcp_client_mod  # type: ignore[unused-ignore]
+
+        mcp_client_mod.MCPClient._make_jsonrpc_request = _mcp_jsonrpc_original  # type: ignore[method-assign]
+    _mcp_jsonrpc_original = None
+    _mcp_jsonrpc_patched = False
+    _get_sdk_client.cache_clear()
+
+
+def _ensure_mcp_jsonrpc_uses_configured_path() -> None:
+    """Monkey-patch MCPClient once so JSON-RPC POST uses Settings.om_mcp_http_path."""
+    global _mcp_jsonrpc_original, _mcp_jsonrpc_patched
+    if _mcp_jsonrpc_patched:
+        return
+
+    import uuid
+
+    import httpx
+    from ai_sdk.exceptions import AISdkError, MCPError  # type: ignore[unused-ignore]
+    from ai_sdk.mcp import _client as mcp_client_mod  # type: ignore[unused-ignore]
+
+    _mcp_jsonrpc_original = mcp_client_mod.MCPClient._make_jsonrpc_request
+
+    def _patched_make_jsonrpc_request(
+        self: Any, method: str, params: dict[str, Any] | None = None
+    ) -> dict[str, Any]:
+        path = get_settings().om_mcp_http_path
+        request_id = str(uuid.uuid4())[:8]
+        payload = {
+            "jsonrpc": "2.0",
+            "id": request_id,
+            "method": method,
+            "params": params or {},
+        }
+        try:
+            result = self._http.post(path, json=payload)
+        except (AISdkError, httpx.HTTPError) as exc:
+            raise MCPError(f"MCP request failed: {exc}") from exc
+
+        if "error" in result:
+            raise MCPError(f"MCP error: {result['error'].get('message', 'Unknown error')}")
+
+        return cast(dict[str, Any], result.get("result", {}))
+
+    mcp_client_mod.MCPClient._make_jsonrpc_request = _patched_make_jsonrpc_request  # type: ignore[method-assign]
+    _mcp_jsonrpc_patched = True
+
+
 # Circuit breaker per NFRs.md: open after 5 consecutive failures, 30 s cooldown.
 om_breaker = pybreaker.CircuitBreaker(
     fail_max=5,
@@ -110,11 +172,14 @@ def _get_sdk_client() -> Any:
     except ImportError as exc:  # pragma: no cover
         raise McpUnavailable("data-ai-sdk is not installed") from exc
 
+    _ensure_mcp_jsonrpc_uses_configured_path()
+
     log.info(
         "om.sdk_init",
         host=settings.ai_sdk_host,
         timeout=settings.om_timeout_seconds,
         max_retries=settings.om_max_retries,
+        om_mcp_http_path=settings.om_mcp_http_path,
     )
     return AISdk(
         host=settings.ai_sdk_host,
@@ -285,7 +350,7 @@ def search_metadata(
     """
     arguments: dict[str, Any] = {"query": query}
     if entity_type is not None:
-        arguments["entity_type"] = entity_type
+        arguments["entityType"] = entity_type
     if limit != 10:
         arguments["limit"] = limit
 

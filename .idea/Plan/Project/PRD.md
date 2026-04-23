@@ -21,7 +21,7 @@ The likely scoring panel ([JudgePersona.md](./JudgePersona.md)):
 - **@PubChimps** (track maintainer) — cares about respect for existing OM surface; will not assign issues
 - **Bot reviewers** (gitar, Copilot, github-actions) — flag prompt injection, supply-chain hygiene, division-by-zero (already caught a competitor on PR [#27506](https://github.com/open-metadata/OpenMetadata/pull/27506))
 
-Three demo moments designed for this panel are detailed in [JudgePersona.md §Three demo moments](./JudgePersona.md).
+Three demo moments designed for this panel are detailed in [JudgePersona.md](./JudgePersona.md) (Moment 1–3).
 
 ---
 
@@ -64,6 +64,17 @@ A **standalone Python application** that acts as:
 - ❌ Production deployment with HA, DR, or multi-tenant support
 - ❌ Building a custom LLM — we use OpenAI GPT-4o-mini (free credits)
 - ❌ Replacing the OM UI — this is a complementary chat interface
+
+---
+
+## Upstream contribution vs hackathon deliverable
+
+| Track                  | What ships                                                                                                       | Merge target                                                                                                                                                                             |
+| ---------------------- | ---------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Hackathon / judges** | Full **openmetadata-mcp-agent** repo: FastAPI + LangGraph + UI + seed + CI                                       | `GunaPalanivel/openmetadata-mcp-agent` `main`                                                                                                                                            |
+| **Upstream-ready**     | Small, reviewable contributions that match OpenMetadata org standards (Apache 2.0, tests, no drive-by refactors) | **`open-metadata/OpenMetadata`** (or other official OM repos) via **fork PR** — typically a **GFI** or doc fix per [DataFindings/GoodFirstIssues.md](../DataFindings/GoodFirstIssues.md) |
+
+The conversational agent **does not** land as a single PR into the OpenMetadata **core** monolith. “Winning” upstream means: (1) hackathon repo demonstrates depth of OM integration; (2) at least one **credible** upstream PR shows the team can ship in the OM ecosystem the same way maintainers expect.
 
 ---
 

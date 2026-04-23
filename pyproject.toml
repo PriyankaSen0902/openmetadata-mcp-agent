@@ -38,12 +38,11 @@ classifiers = [
 ]
 
 dependencies = [
-    # Official OpenMetadata Python SDK + LangChain integration
-    "data-ai-sdk[langchain]==0.1.2",
+    # Official OpenMetadata Python SDK
+    "data-ai-sdk==0.1.2",
 
     # LangGraph orchestration
-    "langgraph>=0.2.0,<0.3.0",
-    "langchain-openai>=0.2.0,<0.3.0",
+    "langgraph>=1.0.10,<2.0.0",
 
     # OpenAI direct (for typed responses + circuit-breaker wrapping)
     "openai>=1.50.0,<2.0.0",
@@ -55,6 +54,9 @@ dependencies = [
     # Pydantic v2
     "pydantic>=2.6.0,<3.0.0",
     "pydantic-settings>=2.1.0,<3.0.0",
+
+    # Scripts (load_seed, trigger_om_search_reindex) read AI_SDK_TOKEN from repo .env
+    "python-dotenv>=1.0.0,<2.0.0",
 
     # HTTP client (replaces requests; timeout-default)
     "httpx>=0.26.0,<0.30.0",
@@ -72,8 +74,8 @@ dependencies = [
 [project.optional-dependencies]
 dev = [
     # Testing
-    "pytest>=8.0.0,<10.0.0",
-    "pytest-asyncio>=0.23.0,<0.30.0",
+    "pytest>=9.0.3,<10.0.0",
+    "pytest-asyncio>=1.2.0,<2.0.0",
     "pytest-cov>=4.1.0,<7.0.0",
     "respx>=0.20.0,<0.30.0",
 
@@ -160,6 +162,7 @@ disallow_untyped_decorators = true
 no_implicit_reexport = true
 show_error_codes = true
 files = ["src/copilot"]
+plugins = ["pydantic.mypy"]
 
 [[tool.mypy.overrides]]
 module = "tests.*"

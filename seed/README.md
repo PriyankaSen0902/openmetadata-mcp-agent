@@ -8,13 +8,13 @@ Frozen demo dataset for `openmetadata-mcp-agent`. Loaded into the local OpenMeta
 
 ## Composition target (per BUILD Phase 2)
 
-| Bucket | Count | Purpose |
-|--------|-------|---------|
-| Normal tables | 30 | Realistic catalog noise (orders, products, sessions, ...) |
-| PII-containing tables | 12 | Auto-classification demo target (email, phone, SSN, address) |
-| Lineage-rich tables | 5 | Lineage impact demo (orders -> order_items -> products) |
-| Prompt-injection-planted tables | 2 | Module G defense demo (column descriptions contain instruction-injection patterns) |
-| Tier1 critical | 1 | Lineage impact "critical asset at risk" demo |
+| Bucket                          | Count | Purpose                                                                            |
+| ------------------------------- | ----- | ---------------------------------------------------------------------------------- |
+| Normal tables                   | 30    | Realistic catalog noise (orders, products, sessions, ...)                          |
+| PII-containing tables           | 12    | Auto-classification demo target (email, phone, SSN, address)                       |
+| Lineage-rich tables             | 5     | Lineage impact demo (orders -> order_items -> products)                            |
+| Prompt-injection-planted tables | 2     | Module G defense demo (column descriptions contain instruction-injection patterns) |
+| Tier1 critical                  | 1     | Lineage impact "critical asset at risk" demo                                       |
 
 ## Loading
 
@@ -29,11 +29,22 @@ python scripts/load_seed.py --drop-existing
 Verify after load:
 
 ```bash
-curl "http://localhost:8585/api/v1/search/query?q=*&index=table_search_index&size=1" \
+# Prefer explicit from/size — some OM 1.6.x builds error on q=*&index=...&size=1 alone.
+curl "http://localhost:8585/api/v1/search/query?q=%2A&index=table_search_index&from=0&size=10" \
   -H "Authorization: Bearer ${AI_SDK_TOKEN}" \
   | jq '.hits.total.value'
 # Should print 50 or more.
 ```
+
+If that still returns HTTP 500, try a minimal query (wildcard URL-encoded):
+
+```bash
+curl "http://localhost:8585/api/v1/search/query?q=%2A&index=table_search_index" \
+  -H "Authorization: Bearer ${AI_SDK_TOKEN}" \
+  | jq '.hits.total.value'
+```
+
+If the total is `0` but `GET /api/v1/tables` returns rows, Elasticsearch search indices are not populated yet (API seed does not always index immediately). Run `python scripts/trigger_om_search_reindex.py` and wait ~30-120s, then re-check the curl above.
 
 ## Why frozen
 

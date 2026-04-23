@@ -84,10 +84,12 @@ print('✅ MCP Connected:', result)
 
 ```bash
 cd ui/
-npm install
+npm ci
 npm run dev
 # → http://localhost:3000
 ```
+
+Use committed `package-lock.json` (`npm ci`). Full P1-14 checklist: [`ui/README.md`](../../ui/README.md).
 
 ## Step 7: Start the Agent Backend
 

@@ -24,6 +24,9 @@ Usage:
     python scripts/load_seed.py               # idempotent upsert
     python scripts/load_seed.py --drop-existing  # delete first, then load
     python scripts/load_seed.py --om-url http://host:8585  # custom OM URL
+
+``AI_SDK_TOKEN`` is read from the process environment or from the repo root
+``.env`` (loaded automatically via ``python-dotenv``).
 """
 
 from __future__ import annotations
@@ -38,7 +41,10 @@ import urllib.request
 from pathlib import Path
 from typing import Any
 
+from dotenv import load_dotenv
+
 ROOT = Path(__file__).resolve().parent.parent
+load_dotenv(ROOT / ".env")
 SEED_FILE = ROOT / "seed" / "customer_db.json"
 
 DEFAULT_OM_URL = "http://localhost:8585"
@@ -47,6 +53,16 @@ SERVICE_NAME = "customer_db_service"
 SERVICE_TYPE = "CustomDatabase"
 MAX_RETRIES = 3
 RETRY_DELAY_SECONDS = 2
+
+# OpenMetadata 1.6+ requires dataLength for these column types when creating tables via API.
+_NEEDS_DATA_LENGTH = frozenset({"CHAR", "VARCHAR", "BINARY", "VARBINARY", "TEXT"})
+_DEFAULT_DATA_LENGTH: dict[str, int] = {
+    "VARCHAR": 255,
+    "CHAR": 36,
+    "BINARY": 16,
+    "VARBINARY": 255,
+    "TEXT": 65535,
+}
 
 
 def _get_headers(token: str) -> dict[str, str]:
@@ -108,12 +124,27 @@ def _get_or_create(
     return _api_request(url, method="PUT", data=payload, headers=headers)
 
 
+def _coerce_data_length(data_type: str, col_def: dict[str, Any]) -> int | None:
+    """Return dataLength for OM when required; None for types that do not need it."""
+    dt = (data_type or "").upper()
+    if dt not in _NEEDS_DATA_LENGTH:
+        return None
+    explicit = col_def.get("dataLength")
+    if explicit is not None:
+        return int(explicit)
+    return _DEFAULT_DATA_LENGTH.get(dt, 255)
+
+
 def _build_column_payload(col_def: dict[str, Any]) -> dict[str, Any]:
     """Convert a seed column definition to an OM CreateColumn shape."""
+    data_type = col_def.get("dataType", "VARCHAR")
     column: dict[str, Any] = {
         "name": col_def["name"],
-        "dataType": col_def.get("dataType", "VARCHAR"),
+        "dataType": data_type,
     }
+    data_length = _coerce_data_length(data_type, col_def)
+    if data_length is not None:
+        column["dataLength"] = data_length
     desc = col_def.get("description", "")
     if desc:
         column["description"] = desc

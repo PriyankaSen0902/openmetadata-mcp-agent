@@ -135,7 +135,7 @@ Mitigate:
 - Confirm backend running: `curl http://127.0.0.1:8000/api/v1/healthz`
 - Confirm CORS: backend FastAPI must include `CORSMiddleware` allowing `http://localhost:3000`
 - Verify `ui/.env`: `VITE_API_URL=http://localhost:8000`
-- Restart UI: `cd ui && npm run dev`
+- Install UI deps from lockfile, then restart: `cd ui && npm ci && npm run dev` (see [`ui/README.md`](../ui/README.md))
 
 ---
 

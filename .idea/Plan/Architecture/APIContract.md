@@ -91,6 +91,8 @@ User submits a natural-language message. Agent runs intent classification → to
 }
 ```
 
+**As implemented (P2-19 / #75)**: `pending_confirmation` is the JSON serialization of the full `ToolCallProposal` (includes `arguments`, `request_id`, `proposed_at`, `rationale`, etc.). The UI-oriented `summary` and `preview_diff` fields above are aspirational for a richer client; the server does not synthesize them separately yet.
+
 **Response 422 — validation_failed**: request body shape invalid.
 
 **Response 422 — tool_not_allowlisted**: LLM proposed a tool outside the 13-tool allowlist (logged as security event).
@@ -237,13 +239,60 @@ Prometheus text-format metrics endpoint. Always 200 (text/plain).
 
 ---
 
+### `GET /api/v1/governance/drift`
+
+Returns the latest governance drift scan results. The drift worker runs in the FastAPI lifespan on a configurable interval (`DRIFT_POLL_INTERVAL_SECONDS`, default 60s) and caches results in memory.
+
+**Response 200 — drift findings**:
+
+```json
+{
+  "drift": [
+    {
+      "entity_fqn": "customer_db.public.customers",
+      "entity_type": "table",
+      "signal": "hash_changed",
+      "detail": "Entity hash changed from a1b2c3d4e5f6… to f6e5d4c3b2a1…",
+      "detected_at": "2026-04-26T14:30:00.000+05:30"
+    },
+    {
+      "entity_fqn": "customer_db.public.customers",
+      "entity_type": "table",
+      "signal": "tag_missing",
+      "detail": "Governance tag 'PII.Sensitive' was removed",
+      "detected_at": "2026-04-26T14:30:00.000+05:30"
+    }
+  ],
+  "scanned_at": "2026-04-26T14:30:00.000+05:30",
+  "entity_count": 42,
+  "drift_count": 2,
+  "ts": "2026-04-26T14:30:01.000+05:30"
+}
+```
+
+| Field          | Type   | Description                               |
+| -------------- | ------ | ----------------------------------------- |
+| `drift`        | array  | List of drift findings                    |
+| `scanned_at`   | string | ISO-8601 timestamp of last scan           |
+| `entity_count` | int    | Number of entities scanned                |
+| `drift_count`  | int    | Number of drift findings                  |
+| `ts`           | string | Response timestamp                        |
+
+**Drift signals**: `hash_changed`, `tag_missing`, `tag_unexpected`.
+
+**Response 503 — om_unavailable**: OM MCP was unreachable during the last scan. Returns the standard error envelope.
+
+---
+
 ## Conventions
 
 - **Content-Type**: `application/json` for all JSON requests/responses.
 - **Time format**: ISO 8601 with timezone (`2026-04-26T14:30:00.000+05:30`). Server side produces; never accept naive timestamps.
 - **UUIDs**: v4, lowercase, hyphenated.
+- **UI session continuity**: browser clients persist `session_id` from each `/chat` response and send it back on subsequent `/chat` requests.
 - **Markdown in `response`**: limited subset — headings, bold/italic, lists, tables, inline code. NO raw HTML, NO `<script>`, NO `javascript:` URLs (UI renders with `react-markdown` + `rehype-sanitize`).
 - **`details` in error envelope**: must be a flat object with safe types (string, number, bool, array of those). NEVER a Pydantic model dump that could include secrets.
+- **Error UX**: clients must surface envelope `code` + canonical `message`; never render raw exception strings or stack traces.
 
 ## What this contract is NOT
 

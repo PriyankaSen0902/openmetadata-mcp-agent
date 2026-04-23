@@ -25,7 +25,7 @@ jobs:
     runs-on: ubuntu-22.04
     timeout-minutes: 2
     steps:
-      - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11  # v4.1.1
+      - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
         with:
           fetch-depth: 2
       - name: Verify no leaked private paths
@@ -33,7 +33,7 @@ jobs:
           set -euo pipefail
           BASE=$(git merge-base origin/main HEAD || echo HEAD~1)
           DIFF=$(git diff --name-only "$BASE" HEAD || true)
-          BANNED='^(\.cursor/|\.vscode/|\.claude/|\.idea/agents/|\.idea/RawData\.md|\.idea/Plan/Project/JudgePersona\.md|\.idea/Plan/Demo/CompetitiveMatrix\.md|\.idea/Plan/Demo/Narrative\.md|\.idea/Plan/Demo/FailureRecovery\.md|\.idea/Plan/DataFindings/BoardStatus\.md|\.idea/Plan/IssueAnalyzer/|\.idea/Plan/PR-Review/ReviewLog\.md)'
+          BANNED='^(\.cursor/|\.vscode/|\.claude/|\.idea/agents/|\.idea/RawData\.md|\.idea/Plan/DataFindings/BoardStatus\.md|\.idea/Plan/IssueAnalyzer/|\.idea/Plan/PR-Review/ReviewLog\.md)'
           if echo "$DIFF" | grep -qE "$BANNED"; then
             echo "ERROR: this commit includes a private/internal path that must not be pushed."
             echo "Banned matches:"
@@ -50,10 +50,10 @@ jobs:
     runs-on: ubuntu-22.04
     timeout-minutes: 5
     steps:
-      - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11  # v4.1.1
-      - uses: actions/setup-python@0a5c61591373683505ea898e09a3ea4f39ef2b9c  # v5.0.0
+      - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
+      - uses: actions/setup-python@0a5c61591373683505ea898e09a3ea4f39ef2b9c # v5.0.0
         with:
-          python-version: '3.11'
+          python-version: "3.11"
           cache: pip
       - name: Install
         run: pip install -e ".[dev]"
@@ -67,10 +67,10 @@ jobs:
     runs-on: ubuntu-22.04
     timeout-minutes: 5
     steps:
-      - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11  # v4.1.1
-      - uses: actions/setup-python@0a5c61591373683505ea898e09a3ea4f39ef2b9c  # v5.0.0
+      - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
+      - uses: actions/setup-python@0a5c61591373683505ea898e09a3ea4f39ef2b9c # v5.0.0
         with:
-          python-version: '3.11'
+          python-version: "3.11"
           cache: pip
       - run: pip install -e ".[dev]"
       - name: mypy --strict
@@ -81,10 +81,10 @@ jobs:
     runs-on: ubuntu-22.04
     timeout-minutes: 10
     steps:
-      - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11  # v4.1.1
-      - uses: actions/setup-python@0a5c61591373683505ea898e09a3ea4f39ef2b9c  # v5.0.0
+      - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
+      - uses: actions/setup-python@0a5c61591373683505ea898e09a3ea4f39ef2b9c # v5.0.0
         with:
-          python-version: '3.11'
+          python-version: "3.11"
           cache: pip
       - run: pip install -e ".[dev]"
       - name: pytest (unit + security + architecture)
@@ -113,10 +113,10 @@ jobs:
       AI_SDK_TOKEN: ${{ secrets.OM_BOT_JWT_FOR_CI }}
       OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY_FOR_CI }}
     steps:
-      - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11  # v4.1.1
-      - uses: actions/setup-python@0a5c61591373683505ea898e09a3ea4f39ef2b9c  # v5.0.0
+      - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
+      - uses: actions/setup-python@0a5c61591373683505ea898e09a3ea4f39ef2b9c # v5.0.0
         with:
-          python-version: '3.11'
+          python-version: "3.11"
           cache: pip
       - run: pip install -e ".[dev]"
       - name: pytest integration
@@ -130,19 +130,23 @@ jobs:
     runs-on: ubuntu-22.04
     timeout-minutes: 5
     steps:
-      - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11  # v4.1.1
-      - uses: actions/setup-python@0a5c61591373683505ea898e09a3ea4f39ef2b9c  # v5.0.0
+      - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
+      - uses: actions/setup-python@0a5c61591373683505ea898e09a3ea4f39ef2b9c # v5.0.0
         with:
-          python-version: '3.11'
+          python-version: "3.11"
           cache: pip
       - run: pip install -e ".[dev]"
       - name: pip-audit (CVE scan on installed deps)
-        # Phase 1 scaffold: don't fail the build on transitive-dep CVEs that
-        # dependabot is already opening PRs for (langchain-openai,
-        # langchain-text-splitters, etc.). Findings are reported as warnings
-        # so the team sees them; gate hardens to --strict in Phase 3 PRR.
-        continue-on-error: true
-        run: pip-audit --skip-editable --vulnerability-service osv
+        run: >
+          pip-audit --strict .
+          --ignore-vuln CVE-2026-34070
+          --ignore-vuln GHSA-r7w7-9xr2-qq2r
+          --ignore-vuln GHSA-fv5p-p927-qmxr
+          --ignore-vuln CVE-2026-28277
+          --ignore-vuln CVE-2025-64439
+          --ignore-vuln CVE-2026-27794
+          --ignore-vuln CVE-2025-71176
+          --ignore-vuln CVE-2025-62727
       - name: bandit (Python AST scan)
         run: bandit -r src/copilot -ll
       - name: License header check
@@ -156,11 +160,11 @@ jobs:
     runs-on: ubuntu-22.04
     timeout-minutes: 3
     steps:
-      - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11  # v4.1.1
+      - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
         with:
           fetch-depth: 0
       - name: Gitleaks
-        uses: gitleaks/gitleaks-action@ff98106e4c7b2bc287b24eaf42907196329070c7  # v2.3.6
+        uses: gitleaks/gitleaks-action@ff98106e4c7b2bc287b24eaf42907196329070c7 # v2.3.6
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -172,15 +176,15 @@ jobs:
     runs-on: ubuntu-22.04
     timeout-minutes: 5
     steps:
-      - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11  # v4.1.1
-      - uses: actions/setup-node@60edb5dd545a775178f52524783378180af0d1f8  # v4.0.2
+      - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
+      - uses: actions/setup-node@60edb5dd545a775178f52524783378180af0d1f8 # v4.0.2
         with:
-          node-version: '20'
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: ui/package-lock.json
       - name: Install + build + typecheck
         working-directory: ui
-        # No package-lock.json yet (Phase 1 scaffold); use `npm install`.
-        # Replace with `npm ci` once we commit a lockfile.
         run: |
-          npm install --no-audit --no-fund
+          npm ci
           npm run build
           npx tsc --noEmit

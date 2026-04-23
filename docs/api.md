@@ -36,8 +36,15 @@ Response 200 (read-only flow completed):
   "session_id": "uuid",
   "response": "Found 12 PII candidates ...",
   "response_format": "markdown",
-  "audit_log": [{"tool_name": "search_metadata", "duration_ms": 245, "success": true}],
-  "tokens_used": {"prompt": 312, "completion": 187},
+  "audit_log": [
+    {
+      "tool_name": "search_metadata",
+      "duration_ms": 245,
+      "success": true,
+      "error_code": null
+    }
+  ],
+  "tokens_used": { "prompt": 312, "completion": 187 },
   "ts": "2026-04-26T14:30:00.000+05:30"
 }
 ```
@@ -87,7 +94,7 @@ Liveness + readiness. Functional from Phase 1.
   "status": "ok",
   "version": "0.1.0",
   "ts": "2026-04-19T...",
-  "checks": {"app": {"ok": true}}
+  "checks": { "app": { "ok": true } }
 }
 ```
 

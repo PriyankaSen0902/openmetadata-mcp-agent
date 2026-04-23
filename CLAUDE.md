@@ -30,7 +30,7 @@ src/copilot/
 
 ## Tech stack
 
-- Frontend: React 18 + Vite 5 + TypeScript 5 (strict, no `any`, no MUI) — in `ui/`
+- Frontend: React 18 + Vite 5 + TypeScript 5 (strict, no `any`, no MUI) — in `ui/` (`npm ci` + `npm run dev` → `http://localhost:3000`; see `ui/README.md`)
 - Backend: Python 3.11+ + FastAPI 0.110+ + Uvicorn 0.27+
 - Agent: LangGraph + langchain-openai
 - MCP Client: `data-ai-sdk[langchain]` (official OpenMetadata SDK)

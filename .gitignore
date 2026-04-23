@@ -5,9 +5,8 @@
 #   - Most of .idea/Plan/* IS PUBLISHED. Strong signal of engineering maturity:
 #     ADRs, NFRs, threat model, control coverage, quality gates, runbooks, PRR,
 #     coding standards, vision alignment, etc.
-#   - A small subset stays PRIVATE because publishing them would either spoil
-#     the demo, name competitors unprofessionally, or expose tactics that read
-#     as cynical out of context. Those exclusions are explicit below.
+#   - A small subset stays PRIVATE (board scraping, review logs). Published
+#     demo/judge docs live under .idea/Plan/Demo/ and JudgePersona.md.
 #   - .cursor/, .vscode/, .claude/, .windsurf/ are workspace-specific and never
 #     pushed.
 # =============================================================================
@@ -20,11 +19,8 @@
 .idea/*
 !.idea/Plan/
 
-# Tactical files inside Plan that stay PRIVATE
-.idea/Plan/Project/JudgePersona.md
-.idea/Plan/Demo/CompetitiveMatrix.md
-.idea/Plan/Demo/Narrative.md
-.idea/Plan/Demo/FailureRecovery.md
+# Tactical files inside Plan that stay PRIVATE (demo narrative + judge matrix
+# are now team-published under .idea/Plan — see FeatureDev/GovernanceEngine.md).
 .idea/Plan/DataFindings/BoardStatus.md
 .idea/Plan/IssueAnalyzer/
 .idea/Plan/PR-Review/ReviewLog.md
@@ -36,6 +32,13 @@
 .claude/
 .windsurf/
 .aider*
+
+# Local scratch / hackathon prompt dump (never commit)
+Task.md
+
+# Local issue tooling / PR body drafts (not required for build; Plan stays tracked)
+scripts/create_sixteen_engineering_issues.py
+pr_body_*.md
 
 # ---------------------------------------------------------------------------
 # Python

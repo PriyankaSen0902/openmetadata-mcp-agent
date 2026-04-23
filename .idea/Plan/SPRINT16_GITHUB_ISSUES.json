@@ -1,0 +1,98 @@
+[
+  {
+    "title": "[ENG-01/16] Session store + wire /chat/confirm and /chat/cancel (P2-19)",
+    "assignee": "GunaPalanivel",
+    "url": "https://github.com/GunaPalanivel/openmetadata-mcp-agent/issues/75",
+    "number": "75"
+  },
+  {
+    "title": "[ENG-02/16] GovernanceState FSM + governance_store (P2-20)",
+    "assignee": "GunaPalanivel",
+    "url": "https://github.com/GunaPalanivel/openmetadata-mcp-agent/issues/76",
+    "number": "76"
+  },
+  {
+    "title": "[ENG-03/16] Agent hooks + OM write-back (P2-21, P2-22)",
+    "assignee": "PriyankaSen0902",
+    "url": "https://github.com/GunaPalanivel/openmetadata-mcp-agent/issues/77",
+    "number": "77"
+  },
+  {
+    "title": "[ENG-04/16] Drift service + lifespan poll + GET /governance/drift (P2-23, P2-24)",
+    "assignee": "GunaPalanivel",
+    "url": "https://github.com/GunaPalanivel/openmetadata-mcp-agent/issues/78",
+    "number": "78"
+  },
+  {
+    "title": "[ENG-05/16] Agent UX hardening \u2014 similarity + causal + evidence_gap (P2-25, P2-26)",
+    "assignee": "PriyankaSen0902",
+    "url": "https://github.com/GunaPalanivel/openmetadata-mcp-agent/issues/79",
+    "number": "79"
+  },
+  {
+    "title": "[ENG-06/16] Auto-classification flow end-to-end (P2-01)",
+    "assignee": "GunaPalanivel",
+    "url": "https://github.com/GunaPalanivel/openmetadata-mcp-agent/issues/80",
+    "number": "80"
+  },
+  {
+    "title": "[ENG-07/16] Lineage impact analysis (P2-02)",
+    "assignee": "PriyankaSen0902",
+    "url": "https://github.com/GunaPalanivel/openmetadata-mcp-agent/issues/81",
+    "number": "81"
+  },
+  {
+    "title": "[ENG-08/16] NL query engine (P2-06)",
+    "assignee": "PriyankaSen0902",
+    "url": "https://github.com/GunaPalanivel/openmetadata-mcp-agent/issues/82",
+    "number": "82"
+  },
+  {
+    "title": "[ENG-09/16] React UI wired to FastAPI (P2-10)",
+    "assignee": "aravindsai003",
+    "url": "https://github.com/GunaPalanivel/openmetadata-mcp-agent/issues/83",
+    "number": "83"
+  },
+  {
+    "title": "[ENG-10/16] HITL confirmation modal (P2-12)",
+    "assignee": "aravindsai003",
+    "url": "https://github.com/GunaPalanivel/openmetadata-mcp-agent/issues/84",
+    "number": "84"
+  },
+  {
+    "title": "[ENG-11/16] OM-native UI + governance dashboard (P3-10, P3-11)",
+    "assignee": "aravindsai003",
+    "url": "https://github.com/GunaPalanivel/openmetadata-mcp-agent/issues/85",
+    "number": "85"
+  },
+  {
+    "title": "[ENG-12/16] Multi-MCP \u2014 GitHub workflow (P3-01, P3-02)",
+    "assignee": "5009226-bhawikakumari",
+    "url": "https://github.com/GunaPalanivel/openmetadata-mcp-agent/issues/86",
+    "number": "86"
+  },
+  {
+    "title": "[ENG-13/16] Integration tests + security gates + coverage baseline (P2-09, P2-10b, P3-08)",
+    "assignee": "5009226-bhawikakumari",
+    "url": "https://github.com/GunaPalanivel/openmetadata-mcp-agent/issues/87",
+    "number": "87"
+  },
+  {
+    "title": "[ENG-14/16] CI \u2014 close gaps vs CIHardening (P3-09)",
+    "assignee": "5009226-bhawikakumari",
+    "url": "https://github.com/GunaPalanivel/openmetadata-mcp-agent/issues/88",
+    "number": "88"
+  },
+  {
+    "title": "[ENG-15/16] Demo automation \u2014 seed + rehearsal scripts (P2-13b, P3-14\u2013P3-16 code)",
+    "assignee": "5009226-bhawikakumari",
+    "url": "https://github.com/GunaPalanivel/openmetadata-mcp-agent/issues/89",
+    "number": "89"
+  },
+  {
+    "title": "[ENG-16/16] E2E \u2014 Playwright chat + HITL + Judge Moment 3 (P2-13)",
+    "assignee": "aravindsai003",
+    "url": "https://github.com/GunaPalanivel/openmetadata-mcp-agent/issues/90",
+    "number": "90"
+  }
+]

@@ -104,6 +104,14 @@ class GithubUnavailable(CopilotError):
     code = ErrorCode.GITHUB_UNAVAILABLE
 
 
+class ProposalNotFound(CopilotError):
+    code = ErrorCode.PROPOSAL_NOT_FOUND
+
+
+class ConfirmationExpired(CopilotError):
+    code = ErrorCode.CONFIRMATION_EXPIRED
+
+
 def _request_id_from(request: Request) -> UUID:
     """Best-effort: pull from RequestIdMiddleware state, else generate fresh."""
     rid = getattr(request.state, "request_id", None)

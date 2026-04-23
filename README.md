@@ -12,7 +12,7 @@
   <img alt="Status" src="https://img.shields.io/badge/status-Phase%201%20Foundation-orange?style=for-the-badge"/>
 </p>
 
-> **OpenMetadata's mission is to take the chaos out of the data practitioner's life.** Today most of that chaos is the *governance loop*: scan, classify, confirm, apply, notify. We turned that loop into one chat sentence — with a human-in-the-loop safety gate, prompt-injection defense, and observability built in.
+> **OpenMetadata's mission is to take the chaos out of the data practitioner's life.** Today most of that chaos is the _governance loop_: scan, classify, confirm, apply, notify. We turned that loop into one chat sentence — with a human-in-the-loop safety gate, prompt-injection defense, and observability built in.
 
 <p align="center">
   <em>(Hero GIF lands here in Phase 3 — 8s loop showing: type query → agent reasons → confirmation modal → tags applied)</em>
@@ -51,11 +51,12 @@ git clone https://github.com/GunaPalanivel/openmetadata-mcp-agent.git
 cd openmetadata-mcp-agent
 
 # 2. Bring up OpenMetadata (Docker; assumes Docker Desktop running, 8 GB RAM)
-docker compose -f infrastructure/docker-compose.yml up -d
+make om-start
+# or: docker compose -f infrastructure/docker-compose.om.yml up -d
 
-# 3. Configure secrets (copy template, paste your OM Bot JWT + OpenAI key)
-cp .env.example .env
-# Edit .env: AI_SDK_TOKEN, OPENAI_API_KEY
+# 3. Configure secrets (template → .env; then replace placeholders — app validates on startup)
+make setup
+# Edit .env: real AI_SDK_TOKEN (Bot JWT) and OPENAI_API_KEY (sk-...)
 
 # 4. Install + run
 make install_dev_env
@@ -64,7 +65,7 @@ make demo
 # UI      → http://localhost:3000
 ```
 
-Full step-by-step including how to generate the OpenMetadata Bot JWT: [docs/getting-started.md](docs/getting-started.md).
+UI-only quickstart and P1-14 checklist: [ui/README.md](ui/README.md). Full step-by-step including how to generate the OpenMetadata Bot JWT: [docs/getting-started.md](docs/getting-started.md).
 
 ---
 
@@ -109,20 +110,20 @@ flowchart LR
 
 We use the official `data-ai-sdk`'s typed `MCPTool` enum for the 7 wrapped tools, and `client.mcp.call_tool(name, args)` for the 5 string-callable ones. Source of truth: [`openmetadata-mcp/.../tools.json`](https://github.com/open-metadata/OpenMetadata/blob/main/openmetadata-mcp/src/main/resources/json/data/mcp/tools.json) (12 entries verified).
 
-| # | Tool | How we use it |
-|---|------|---------------|
-| 1 | `search_metadata` | NL → OpenSearch DSL; governance scanning |
-| 2 | `semantic_search` | Conceptual data discovery |
-| 3 | `get_entity_details` | Column inspection for classification |
-| 4 | `get_entity_lineage` | Impact analysis (3 hops both directions) |
-| 5 | `create_glossary` | Auto-generate governance glossaries |
-| 6 | `create_glossary_term` | Auto-generate governance terms |
-| 7 | `create_lineage` | Document discovered relationships |
-| 8 | `patch_entity` | **Apply PII tags, tier labels (HITL-gated)** |
-| 9 | `get_test_definitions` | DQ test catalog lookup |
-| 10 | `create_test_case` | Data quality automation |
-| 11 | `create_metric` | Governance KPIs |
-| 12 | `root_cause_analysis` | DQ failure explanation |
+| #   | Tool                   | How we use it                                |
+| --- | ---------------------- | -------------------------------------------- |
+| 1   | `search_metadata`      | NL → OpenSearch DSL; governance scanning     |
+| 2   | `semantic_search`      | Conceptual data discovery                    |
+| 3   | `get_entity_details`   | Column inspection for classification         |
+| 4   | `get_entity_lineage`   | Impact analysis (3 hops both directions)     |
+| 5   | `create_glossary`      | Auto-generate governance glossaries          |
+| 6   | `create_glossary_term` | Auto-generate governance terms               |
+| 7   | `create_lineage`       | Document discovered relationships            |
+| 8   | `patch_entity`         | **Apply PII tags, tier labels (HITL-gated)** |
+| 9   | `get_test_definitions` | DQ test catalog lookup                       |
+| 10  | `create_test_case`     | Data quality automation                      |
+| 11  | `create_metric`        | Governance KPIs                              |
+| 12  | `root_cause_analysis`  | DQ failure explanation                       |
 
 ---
 
@@ -206,12 +207,12 @@ A small subset (8 tactical/sensitive files) stay private to protect the demo and
 
 ## Team — "The Mavericks"
 
-| Name | GitHub | Role |
-|------|--------|------|
-| Guna Palanivel | [@GunaPalanivel](https://github.com/GunaPalanivel) | Architect / Tech Lead |
-| Priyanka Sen | [@PriyankaSen0902](https://github.com/PriyankaSen0902) | Senior Builder |
-| Aravind Sai | [@aravindsai003](https://github.com/aravindsai003) | Builder / Validator |
-| Bhawika Kumari | [@5009226-bhawikakumari](https://github.com/5009226-bhawikakumari) | Delivery / Docs |
+| Name           | GitHub                                                             | Role                  |
+| -------------- | ------------------------------------------------------------------ | --------------------- |
+| Guna Palanivel | [@GunaPalanivel](https://github.com/GunaPalanivel)                 | Architect / Tech Lead |
+| Priyanka Sen   | [@PriyankaSen0902](https://github.com/PriyankaSen0902)             | Senior Builder        |
+| Aravind Sai    | [@aravindsai003](https://github.com/aravindsai003)                 | Builder / Validator   |
+| Bhawika Kumari | [@5009226-bhawikakumari](https://github.com/5009226-bhawikakumari) | Delivery / Docs       |
 
 ---
 

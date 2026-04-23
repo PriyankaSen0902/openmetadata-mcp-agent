@@ -69,11 +69,13 @@ _ORIGINAL_BREAKER = om_mcp.om_breaker
 @pytest.fixture(autouse=True)
 def _reset_state():
     """Reset module-level caches and circuit breaker between tests."""
+    om_mcp._reset_mcp_jsonrpc_path_patch_for_tests()
     om_mcp._get_sdk_client.cache_clear()
     # Close the actual breaker that wraps _call_tool_inner (the one captured
     # at decoration time), not just the module attribute.
     _ORIGINAL_BREAKER.close()
     yield
+    om_mcp._reset_mcp_jsonrpc_path_patch_for_tests()
     om_mcp._get_sdk_client.cache_clear()
     _ORIGINAL_BREAKER.close()
 
@@ -88,6 +90,44 @@ def _mock_sdk(
     elif tool_result:
         sdk.mcp.call_tool.return_value = tool_result
     return sdk
+
+
+# =============================================================================
+# MCP JSON-RPC path patch (OM_MCP_HTTP_PATH)
+# =============================================================================
+
+
+class TestMcpJsonRpcPathPatch:
+    """data-ai-sdk posts to Settings.om_mcp_http_path instead of hardcoded /mcp."""
+
+    def test_posts_to_configured_path(self) -> None:
+        from ai_sdk.mcp._client import MCPClient
+
+        om_mcp._reset_mcp_jsonrpc_path_patch_for_tests()
+        with patch("copilot.clients.om_mcp.get_settings") as mock_gs:
+            mock_gs.return_value.om_mcp_http_path = "/custom/mcp"
+            om_mcp._ensure_mcp_jsonrpc_uses_configured_path()
+
+            parent_http = MagicMock()
+            parent_http.timeout = 5.0
+            parent_http.verify_ssl = True
+            parent_http.max_retries = 3
+            parent_http.retry_delay = 1.0
+            parent_http.user_agent = "test"
+
+            mcp_http = MagicMock()
+            mcp_http.post.return_value = {"result": {"tools": []}}
+
+            with patch("ai_sdk.mcp._client.HTTPClient", return_value=mcp_http):
+                client = MCPClient(
+                    host="http://example.com",
+                    auth=MagicMock(),
+                    http=parent_http,
+                )
+                client._make_jsonrpc_request("tools/list")
+
+            mcp_http.post.assert_called_once()
+            assert mcp_http.post.call_args[0][0] == "/custom/mcp"
 
 
 # =============================================================================
@@ -171,7 +211,7 @@ class TestCallTool:
     @patch("copilot.clients.om_mcp._get_sdk_client")
     def test_raises_mcp_unavailable_on_tool_execution_error(self, mock_get_sdk: MagicMock) -> None:
         """MCPToolExecutionError maps to McpUnavailable."""
-        from ai_sdk.mcp._client import MCPToolExecutionError  # type: ignore[import-untyped]
+        from ai_sdk.mcp._client import MCPToolExecutionError  # type: ignore[attr-defined]
 
         mock_get_sdk.return_value = _mock_sdk(
             side_effect=MCPToolExecutionError(tool="search_metadata", message="execution failed")
@@ -295,7 +335,7 @@ class TestSearchMetadata:
 
         mock_call_tool.assert_called_once_with(
             "search_metadata",
-            {"query": "customer tables", "entity_type": "table"},
+            {"query": "customer tables", "entityType": "table"},
         )
         assert result == {"hits": []}
 
