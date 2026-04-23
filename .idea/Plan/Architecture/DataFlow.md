@@ -19,7 +19,7 @@ sequenceDiagram
     API->>A: run_chat_turn
     A->>LLM: intent + tool selection
     LLM-->>A: read tool proposal
-    A->>MCP: search_metadata / get_entity_details
+    A->>MCP: search_metadata / get_entity_details / get_entity_lineage
     MCP->>OM: REST / search
     OM-->>MCP: JSON
     MCP-->>A: structured result

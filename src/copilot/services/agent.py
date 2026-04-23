@@ -635,6 +635,16 @@ async def format_response(state: AgentState) -> AgentState:
                 )
                 break
 
+    # Lineage impact report instructions
+    if intent == "lineage" and results:
+        context_parts.append(
+            "\nIMPORTANT: Lineage Impact Analysis rules:\n"
+            "1. List affected assets grouped by type (tables, dashboards, pipelines).\n"
+            "2. Highlight Tier 1 assets and cross-service dependencies.\n"
+            "3. Note any data quality test failures on downstream assets.\n"
+            "4. Be concise — no more than 10 lines."
+        )
+
     # Similarity scoring
     candidate_fqns = []
     for proposal in state.get("tool_proposals", []) + ([pending] if pending else []):

@@ -22,6 +22,7 @@ User: "What breaks if I drop the customers table?"
    - 3 tables (customer_metrics, customer_segments, customer_ltv)
 
    Critical impact: customer_360 dashboard is Tier 1 and owned by the exec team."
+```
 
 User: "Show me the upstream of the revenue_dashboard"
 → Agent calls get_entity_lineage(fqn="...", upstreamDepth=5)
@@ -59,6 +60,10 @@ Rules:
 3. Note any data quality test failures on downstream assets
 4. Be concise — no more than 10 lines
 ```
+
+## Done when
+
+- [x] Lineage intent returns human-readable report with Tier warnings.
 
 ## Error Handling
 
