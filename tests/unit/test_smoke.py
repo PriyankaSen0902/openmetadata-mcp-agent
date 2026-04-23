@@ -97,3 +97,18 @@ class TestChatRoute:
         assert kwargs["user_message"] == "show me some tables"
         assert kwargs["session_id"] is None
         assert str(kwargs["request_id"]) == request_id
+
+    @patch("copilot.api.chat.run_chat_turn", new_callable=AsyncMock)
+    def test_chat_returns_safe_error_envelope_on_unhandled_error(
+        self, mock_run_chat_turn: AsyncMock, client: TestClient
+    ) -> None:
+        mock_run_chat_turn.side_effect = RuntimeError("token=secret-value")
+
+        response = client.post("/api/v1/chat", json={"message": "trigger error"})
+
+        assert response.status_code == 500
+        body = response.json()
+        assert body["code"] == "internal_error"
+        assert "request_id" in body
+        assert "ts" in body
+        assert "secret-value" not in body["message"]

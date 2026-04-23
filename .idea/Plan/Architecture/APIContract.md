@@ -283,8 +283,10 @@ These routes are **specified before code** so agents and reviewers do not silent
 - **Content-Type**: `application/json` for all JSON requests/responses.
 - **Time format**: ISO 8601 with timezone (`2026-04-26T14:30:00.000+05:30`). Server side produces; never accept naive timestamps.
 - **UUIDs**: v4, lowercase, hyphenated.
+- **UI session continuity**: browser clients persist `session_id` from each `/chat` response and send it back on subsequent `/chat` requests.
 - **Markdown in `response`**: limited subset — headings, bold/italic, lists, tables, inline code. NO raw HTML, NO `<script>`, NO `javascript:` URLs (UI renders with `react-markdown` + `rehype-sanitize`).
 - **`details` in error envelope**: must be a flat object with safe types (string, number, bool, array of those). NEVER a Pydantic model dump that could include secrets.
+- **Error UX**: clients must surface envelope `code` + canonical `message`; never render raw exception strings or stack traces.
 
 ## What this contract is NOT
 
