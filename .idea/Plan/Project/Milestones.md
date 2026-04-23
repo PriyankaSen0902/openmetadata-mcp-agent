@@ -94,7 +94,7 @@ Tightened execution for the final sprint: drive by **16 GitHub engineering issue
 
 1. Multi-MCP: connect 1 external MCP server (GitHub or Slack)
 2. Cross-MCP workflow: "find PII tables → auto-create GitHub issue"
-3. UI polish: OM-native styling, responsive
+3. [x] UI polish: OM-native styling, responsive
 4. Error handling for all edge cases
 5. Demo video recorded (2–3 min)
 6. README finalized with architecture diagram

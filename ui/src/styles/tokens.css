@@ -62,7 +62,7 @@ body,
   display: flex;
   flex-direction: column;
   min-height: 100vh;
-  max-width: 880px;
+  max-width: 1200px;
   margin: 0 auto;
   padding: var(--space-lg);
 }
@@ -87,8 +87,78 @@ body,
 .app__main {
   flex: 1;
   display: flex;
+  flex-direction: row;
+  gap: var(--space-lg);
+}
+
+.app__sidebar {
+  width: 280px;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+}
+
+.app__chat-container {
+  flex: 1;
+  display: flex;
   flex-direction: column;
   gap: var(--space-lg);
+}
+
+/* Dashboard Cards */
+.app__card {
+  background-color: var(--color-bg-secondary);
+  border: 1px solid var(--color-border-primary);
+  border-radius: var(--radius-md);
+  padding: var(--space-md);
+}
+
+.app__card-title {
+  color: var(--color-text-secondary);
+  font-size: 12px;
+  text-transform: uppercase;
+  font-weight: 600;
+  margin-bottom: var(--space-xs);
+}
+
+.app__card-value {
+  color: var(--color-text-primary);
+  font-size: 24px;
+  font-weight: 600;
+}
+
+.app__card-value--good {
+  color: var(--color-text-success);
+}
+.app__card-value--warning {
+  color: var(--color-text-warning);
+}
+.app__card-value--error {
+  color: var(--color-text-error);
+}
+
+/* Badge tags */
+.app__badge {
+  display: inline-block;
+  background-color: #2b2841;
+  color: #a49aff;
+  padding: 2px 6px;
+  border-radius: var(--radius-sm);
+  font-size: 11px;
+  font-weight: 500;
+  margin-right: var(--space-xs);
+  margin-bottom: var(--space-xs);
+  border: 1px solid #3c375c;
+}
+.app__badge--pii {
+  background-color: #441818;
+  color: #ff9191;
+  border-color: #5c2626;
+}
+.app__badge--tier {
+  background-color: #173b22;
+  color: #81f0a6;
+  border-color: #265c36;
 }
 
 .app__status,

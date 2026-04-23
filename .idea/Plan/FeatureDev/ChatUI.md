@@ -49,4 +49,4 @@ const data = await response.json();
 |-------|-------|
 | Phase 1 | Scaffold with Vite, basic chat input/output, hardcoded responses |
 | Phase 2 | Connect to FastAPI `/api/v1/chat`, persist `session_id`, render responses, show safe error-envelope messages |
-| Phase 3 | OM-native styling, responsive, governance dashboard view |
+| Phase 3 | [x] OM-native styling, responsive, governance dashboard view |

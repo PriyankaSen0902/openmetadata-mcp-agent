@@ -128,23 +128,43 @@ export function App(): JSX.Element {
       </header>
 
       <main className="app__main">
-        <section className="app__status">
-          <button type="button" onClick={() => void checkHealth()}>
-            Check backend health
-          </button>
-          {healthStatus !== null && (
-            <pre className="app__status-output">
-              status: {healthStatus.status}
-              {'\n'}version: {healthStatus.version}
-              {'\n'}ts: {healthStatus.ts}
-            </pre>
-          )}
-          {healthError !== null && (
-            <p className="app__status-error">Backend not reachable: {healthError}</p>
-          )}
-        </section>
+        <aside className="app__sidebar">
+          <div className="app__card">
+            <h3 className="app__card-title">Governance Status</h3>
+            <p className="app__card-value app__card-value--good">Healthy</p>
+          </div>
+          <div className="app__card">
+            <h3 className="app__card-title">Tag Coverage</h3>
+            <p className="app__card-value">86%</p>
+          </div>
+          <div className="app__card">
+            <h3 className="app__card-title">PII Exposure</h3>
+            <p className="app__card-value app__card-value--warning">2 Alerts</p>
+          </div>
+          <div className="app__card">
+            <h3 className="app__card-title">Unclassified Assets</h3>
+            <p className="app__card-value">124</p>
+          </div>
 
-        <section className="app__chat">
+          <section className="app__status">
+            <button type="button" onClick={() => void checkHealth()}>
+              Check backend health
+            </button>
+            {healthStatus !== null && (
+              <pre className="app__status-output">
+                status: {healthStatus.status}
+                {'\n'}version: {healthStatus.version}
+                {'\n'}ts: {healthStatus.ts}
+              </pre>
+            )}
+            {healthError !== null && (
+              <p className="app__status-error">Backend not reachable: {healthError}</p>
+            )}
+          </section>
+        </aside>
+
+        <div className="app__chat-container">
+          <section className="app__chat">
           <p className="app__chat-placeholder">Send a message to `POST /api/v1/chat`.</p>
 
           {sessionId !== null && <p className="app__chat-session">session_id: {sessionId}</p>}
@@ -181,7 +201,8 @@ export function App(): JSX.Element {
             {isSending ? 'Sending...' : 'Send'}
           </button>
           {chatError !== null && <p className="app__chat-error">{chatError}</p>}
-        </section>
+          </section>
+        </div>
       </main>
 
       <footer className="app__footer">
