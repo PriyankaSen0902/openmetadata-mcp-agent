@@ -218,7 +218,11 @@ Respond with ONLY a JSON object:
 
 
 async def select_tools(state: AgentState) -> AgentState:
-    """Node 2: Use LLM to select which MCP tools to call with what arguments.
+    """Node 2: Select tools — deterministic fast-path first, LLM fallback second.
+
+    Per NLQueryEngine.md: common query patterns (search, details, lineage)
+    are routed deterministically via ``nl_router.route_query`` to avoid
+    unnecessary LLM calls.  Only ambiguous queries fall through to the LLM.
 
     Args:
         state: Current state with ``intent`` and ``user_message``.
@@ -228,6 +232,26 @@ async def select_tools(state: AgentState) -> AgentState:
     """
     log.info("agent.select_tools.start", request_id=state["request_id"], intent=state["intent"])
 
+    # --- Fast path: deterministic routing ---
+    from copilot.services.nl_router import route_query
+
+    route = route_query(state["user_message"], intent=state.get("intent"))
+    if route is not None:
+        state["tool_proposals"] = [
+            {
+                "name": route.tool_name,
+                "arguments": route.arguments,
+                "rationale": route.rationale,
+            }
+        ]
+        log.info(
+            "agent.select_tools.routed",
+            tool=route.tool_name,
+            rationale=route.rationale,
+        )
+        return state
+
+    # --- Slow path: LLM-based tool selection ---
     intent_hint = INTENT_DESCRIPTIONS.get(state["intent"] or "search", "")
 
     try:

@@ -127,7 +127,7 @@ We'll link the final submission + demo video before the Apr 26 deadline.
 
 ### OMH-PSTL (@PriyankaSen0902)
 
-- [ ] `P2-06` **NL query engine**: text → intent → correct MCP tool → structured Markdown response
+- [x] `P2-06` **NL query engine**: text → intent → correct MCP tool → structured Markdown response
 - [ ] `P2-07` **Governance summary**: scan catalog → tag coverage %, PII exposure %, unclassified count
 - [ ] `P2-08` Error handling per [NFRs.md §The 5 Things AI Never Adds](./Project/NFRs.md): retry (`tenacity`) + circuit breaker (`pybreaker`) + structured error envelope on every MCP call
 - [ ] `P2-09` Integration tests: agent → MCP client → mock OM responses; include circuit-breaker-open paths
