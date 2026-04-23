@@ -63,7 +63,7 @@ class ToolCallProposal(BaseModel):
 
 ### `PendingSession` (session store — P2-19)
 
-In-memory record keyed by `session_id` (string UUID) for `POST /chat/confirm` / `POST /chat/cancel`. Lives in `src/copilot/services/sessions.py` (planned). Not persisted across process restart.
+In-memory record keyed by `session_id` (string UUID) for `POST /chat/confirm` / `POST /chat/cancel`. **Implemented** in [`src/copilot/services/sessions.py`](../../src/copilot/services/sessions.py) with canonical Pydantic model in [`src/copilot/models/chat.py`](../../src/copilot/models/chat.py). Not persisted across process restart.
 
 ```python
 from pydantic import BaseModel, Field

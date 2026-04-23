@@ -16,8 +16,8 @@ Per .idea/Plan/Architecture/APIContract.md:
   - GET  /api/v1/healthz   functional in Phase 1 (boots without dependencies)
   - GET  /api/v1/metrics   functional in Phase 1 (Prometheus text format)
   - POST /api/v1/chat      functional in Phase 2 via the LangGraph agent
-  - POST /api/v1/chat/confirm  stubbed until P2-12
-  - POST /api/v1/chat/cancel   no-op cancel until sessions are stateful
+  - POST /api/v1/chat/confirm  P2-19 session store + OM MCP execute on accept
+  - POST /api/v1/chat/cancel   clears pending session state (P2-19)
 """
 
 from __future__ import annotations

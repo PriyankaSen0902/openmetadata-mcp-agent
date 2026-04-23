@@ -17,22 +17,20 @@ Per .idea/Plan/Architecture/APIContract.md:
   POST /api/v1/chat/confirm    user accepts/rejects pending write proposal
   POST /api/v1/chat/cancel     user clears the session
 
-POST /api/v1/chat is functional in Phase 2; confirm remains stubbed until
-P2-12 wires the write-confirmation flow.
+POST /api/v1/chat is functional in Phase 2; confirm/cancel use the in-memory
+session store (P2-19).
 """
 
 from __future__ import annotations
 
-from datetime import UTC, datetime
-from uuid import UUID
+from uuid import UUID, uuid4
 
 from fastapi import APIRouter, Request
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
 
-from copilot.middleware.error_envelope import _envelope
-from copilot.models.chat import ErrorCode
 from copilot.services.agent import run_chat_turn
+from copilot.services.sessions import cancel_chat_session, confirm_chat_proposal
 
 router = APIRouter(tags=["chat"])
 
@@ -71,21 +69,21 @@ async def post_chat(request: Request, body: ChatRequest) -> JSONResponse:
 
 
 @router.post("/chat/confirm", summary="Confirm a pending write proposal")
-async def post_chat_confirm(request: Request, _body: ChatConfirmRequest) -> JSONResponse:
-    """TODO P2-12: wire to services.agent.confirm_proposal()."""
-    return _envelope(ErrorCode.NOT_IMPLEMENTED, request)
+async def post_chat_confirm(request: Request, body: ChatConfirmRequest) -> JSONResponse:
+    """Execute or reject a pending write via ``services.sessions``."""
+    rid = getattr(request.state, "request_id", None)
+    request_uuid = rid if isinstance(rid, UUID) else uuid4()
+    result = await confirm_chat_proposal(
+        body.session_id,
+        body.proposal_id,
+        body.accepted,
+        request_id=request_uuid,
+    )
+    return JSONResponse(status_code=200, content=result)
 
 
 @router.post("/chat/cancel", summary="Cancel the current chat session")
 async def post_chat_cancel(_request: Request, body: ChatCancelRequest) -> JSONResponse:
-    """TODO P2-12: wire to services.agent.cancel_session()."""
-    # Even the "no-op cancel" is stubbed for now; once sessions exist we'll
-    # actually clear the LangGraph state.
-    return JSONResponse(
-        status_code=200,
-        content={
-            "session_id": str(body.session_id),
-            "cancelled": True,
-            "ts": datetime.now(UTC).isoformat(),
-        },
-    )
+    """Clear pending HITL state for the session."""
+    result = await cancel_chat_session(body.session_id)
+    return JSONResponse(status_code=200, content=result)

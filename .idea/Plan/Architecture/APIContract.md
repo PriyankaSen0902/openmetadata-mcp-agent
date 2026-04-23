@@ -91,6 +91,8 @@ User submits a natural-language message. Agent runs intent classification → to
 }
 ```
 
+**As implemented (P2-19 / #75)**: `pending_confirmation` is the JSON serialization of the full `ToolCallProposal` (includes `arguments`, `request_id`, `proposed_at`, `rationale`, etc.). The UI-oriented `summary` and `preview_diff` fields above are aspirational for a richer client; the server does not synthesize them separately yet.
+
 **Response 422 — validation_failed**: request body shape invalid.
 
 **Response 422 — tool_not_allowlisted**: LLM proposed a tool outside the 13-tool allowlist (logged as security event).

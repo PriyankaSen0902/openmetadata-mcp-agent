@@ -1,34 +1,62 @@
-### Related Issues
+## Description
 
-- closes #
+**What does this PR do?**
 
-### Proposed Changes
+<!-- 2-3 sentences. What problem does it solve and how. -->
 
-<!-- What does this PR do and why? Be specific about the implementation approach. -->
+**Fixes / Closes**
 
-### How I tested
+<!-- GitHub issue links: - Fixes #123, - Closes #456 -->
 
-- Unit:
-  -
-- Integration:
-  -
-- Quality:
-  - `pre-commit run --all-files`
-  - `make test`
-- Regression:
-  - All existing tests pass
+**Related tasks**
 
-### Notes for reviewers
+<!-- Task tracker IDs if applicable: e.g., P2-06, JIRA-123 -->
 
-<!-- Anything the reviewer should pay extra attention to: tricky logic, security implications, architectural decisions, or known limitations. -->
+---
 
-### Checklist
+## Changes Made
 
-- [ ] I have read the [coding standards](/.idea/Plan/Architecture/CodingStandards.md) and the [NFRs](/.idea/Plan/Project/NFRs.md)
-- [ ] `pre-commit run --all-files` passes locally
-- [ ] New code has tests (happy path + at least one failure case)
-- [ ] All existing tests still pass
-- [ ] No `print()` or `console.log` in production paths
-- [ ] No secrets, hardcoded URLs, or `--no-verify` commits
-- [ ] Docstrings added for new functions
-- [ ] README updated if new setup steps are needed
+<!-- File-by-file if the diff is large -->
+
+-
+-
+- ***
+
+## Root Cause (for bug fixes)
+
+<!-- What was broken and why. Skip for features. -->
+
+---
+
+## How to Test
+
+1.
+2.
+3.
+
+---
+
+## Test Results
+
+```
+<!-- Paste relevant test output -->
+```
+
+---
+
+## Screenshots / Recording
+
+<!-- For UI or CLI output changes. Before/after preferred. -->
+
+---
+
+## Checklist
+
+- [ ] Builds without errors
+- [ ] All existing tests pass
+- [ ] New tests added (if applicable)
+- [ ] `pre-commit run --all-files` clean — no `--no-verify`
+- [ ] No hardcoded secrets or credentials
+- [ ] Docs updated if behavior changed
+- [ ] Self-reviewed — diff is clean, no debug leftovers
+- [ ] Deferred items tracked in a follow-up issue

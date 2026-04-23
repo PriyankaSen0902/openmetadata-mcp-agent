@@ -52,6 +52,8 @@ from copilot.middleware.error_envelope import (
 from copilot.models import RiskLevel, ToolCallProposal, ToolCallRecord, ToolName
 from copilot.models.chat import risk_level_for
 from copilot.observability import get_logger
+from copilot.services.sessions import set_pending
+from copilot.services.tool_audit import redact_tool_arguments, summarize_tool_result
 
 log = get_logger(__name__)
 
@@ -406,7 +408,7 @@ async def execute_tool(state: AgentState) -> AgentState:
             proposal_id=proposal.proposal_id,
             request_id=proposal.request_id,
             tool_name=proposal.tool_name,
-            arguments_redacted=_redact_arguments(proposal.arguments),
+            arguments_redacted=redact_tool_arguments(proposal.arguments),
             confirmed_by_user=False,
             started_at=start,
         )
@@ -419,7 +421,7 @@ async def execute_tool(state: AgentState) -> AgentState:
             record.completed_at = end
             record.duration_ms = int((end - start).total_seconds() * 1000)
             record.success = True
-            record.response_summary = _summarize_result(result)
+            record.response_summary = summarize_tool_result(result)
             results.append(result)
 
         except McpAuthFailed as exc:
@@ -661,6 +663,8 @@ async def run_chat_turn(
     pending = final_state.get("pending_confirmation")
     if pending:
         response["pending_confirmation"] = pending
+        tcp = ToolCallProposal.model_validate(pending)
+        await set_pending(UUID(final_state["session_id"]), tcp)
 
     log.info("agent.run_chat_turn.complete", request_id=final_state["request_id"])
     return response
@@ -669,28 +673,6 @@ async def run_chat_turn(
 # =============================================================================
 # Helpers
 # =============================================================================
-
-
-def _redact_arguments(arguments: dict[str, Any]) -> dict[str, Any]:
-    """Redact potentially sensitive values from tool arguments for audit logs."""
-    redacted = {}
-    sensitive_keys = {"token", "password", "secret", "api_key", "jwt"}
-    for key, value in arguments.items():
-        if key.lower() in sensitive_keys:
-            redacted[key] = "***REDACTED***"
-        elif isinstance(value, str) and len(value) > 200:
-            redacted[key] = value[:200] + "...[truncated]"
-        else:
-            redacted[key] = value
-    return redacted
-
-
-def _summarize_result(result: dict[str, Any]) -> str:
-    """Create a brief summary of a tool call result for the audit log."""
-    summary = json.dumps(result, default=str)
-    if len(summary) > 500:
-        return summary[:497] + "..."
-    return summary
 
 
 def _fallback_format(

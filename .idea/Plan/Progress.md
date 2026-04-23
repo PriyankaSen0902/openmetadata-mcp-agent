@@ -215,16 +215,16 @@ Authoritative paths are under the repo root (`openmetadata-mcp-agent/`); links b
 
 ### Phase 2b — Governance engine ([GovernanceEngine.md](./FeatureDev/GovernanceEngine.md))
 
-| Task ID | Description                                                            | Issue | PR    | P   | B   | V1  | F   | V2  | PR opened | R   | M   |
-| ------- | ---------------------------------------------------------------------- | ----- | ----- | --- | --- | --- | --- | --- | --------- | --- | --- |
-| P2-19   | Session proposals + wire `/chat/confirm` + `/chat/cancel` via services | #\_\_ | #\_\_ | [ ] | [ ] | [ ] | [ ] | [ ] | [ ]       | [ ] | [ ] |
-| P2-20   | `GovernanceState` + `governance_store`                                 | #\_\_ | #\_\_ | [ ] | [ ] | [ ] | [ ] | [ ] | [ ]       | [ ] | [ ] |
-| P2-21   | Agent hooks: validate / hitl / confirm → store transitions             | #\_\_ | #\_\_ | [ ] | [ ] | [ ] | [ ] | [ ] | [ ]       | [ ] | [ ] |
-| P2-22   | OM write-back (`patch_entity` custom properties)                       | #\_\_ | #\_\_ | [ ] | [ ] | [ ] | [ ] | [ ] | [ ]       | [ ] | [ ] |
-| P2-23   | `drift.py` signals                                                     | #\_\_ | #\_\_ | [ ] | [ ] | [ ] | [ ] | [ ] | [ ]       | [ ] | [ ] |
-| P2-24   | Lifespan drift poll + `GET /api/v1/governance/drift`                   | #\_\_ | #\_\_ | [ ] | [ ] | [ ] | [ ] | [ ] | [ ]       | [ ] | [ ] |
-| P2-25   | `similarity.py` + format_response context                              | #\_\_ | #\_\_ | [ ] | [ ] | [ ] | [ ] | [ ] | [ ]       | [ ] | [ ] |
-| P2-26   | Causal impact + `evidence_gap`                                         | #\_\_ | #\_\_ | [ ] | [ ] | [ ] | [ ] | [ ] | [ ]       | [ ] | [ ] |
+| Task ID | Description                                                            | Issue                                                                    | PR                                                                     | P   | B   | V1  | F   | V2  | PR opened | R   | M   |
+| ------- | ---------------------------------------------------------------------- | ------------------------------------------------------------------------ | ---------------------------------------------------------------------- | --- | --- | --- | --- | --- | --------- | --- | --- |
+| P2-19   | Session proposals + wire `/chat/confirm` + `/chat/cancel` via services | [#75](https://github.com/GunaPalanivel/openmetadata-mcp-agent/issues/75) | [#93](https://github.com/GunaPalanivel/openmetadata-mcp-agent/pull/93) | [ ] | [ ] | [ ] | [ ] | [ ] | [ ]       | [ ] | [ ] |
+| P2-20   | `GovernanceState` + `governance_store`                                 | #\_\_                                                                    | #\_\_                                                                  | [ ] | [ ] | [ ] | [ ] | [ ] | [ ]       | [ ] | [ ] |
+| P2-21   | Agent hooks: validate / hitl / confirm → store transitions             | #\_\_                                                                    | #\_\_                                                                  | [ ] | [ ] | [ ] | [ ] | [ ] | [ ]       | [ ] | [ ] |
+| P2-22   | OM write-back (`patch_entity` custom properties)                       | #\_\_                                                                    | #\_\_                                                                  | [ ] | [ ] | [ ] | [ ] | [ ] | [ ]       | [ ] | [ ] |
+| P2-23   | `drift.py` signals                                                     | #\_\_                                                                    | #\_\_                                                                  | [ ] | [ ] | [ ] | [ ] | [ ] | [ ]       | [ ] | [ ] |
+| P2-24   | Lifespan drift poll + `GET /api/v1/governance/drift`                   | #\_\_                                                                    | #\_\_                                                                  | [ ] | [ ] | [ ] | [ ] | [ ] | [ ]       | [ ] | [ ] |
+| P2-25   | `similarity.py` + format_response context                              | #\_\_                                                                    | #\_\_                                                                  | [ ] | [ ] | [ ] | [ ] | [ ] | [ ]       | [ ] | [ ] |
+| P2-26   | Causal impact + `evidence_gap`                                         | #\_\_                                                                    | #\_\_                                                                  | [ ] | [ ] | [ ] | [ ] | [ ] | [ ]       | [ ] | [ ] |
 
 ### Phase 2 Exit Gate
 
