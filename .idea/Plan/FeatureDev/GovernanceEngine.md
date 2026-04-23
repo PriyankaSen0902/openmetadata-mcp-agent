@@ -62,13 +62,13 @@ ALLOWED_TRANSITIONS: dict[GovernanceState, frozenset[GovernanceState]] = {
 ## Session proposals (P2-19)
 
 - **Store**: `Dict[str, PendingSession]` or `Dict[UUID, ...]` keyed by `session_id` string; value holds `pending: ToolCallProposal | None`, `expires_at`.
-- **`POST /chat/confirm`**: Service loads proposal by `(session_id, proposal_id)`; if `accepted`, call `om_mcp` / tool executor with allowlist + breaker; clear pending. If rejected, clear pending and return cancellation copy per [APIContract.md](../Architecture/APIContract.md). **Updating `governance_store` → `APPROVED`** is **P2-20 (#76) + P2-21 (#77)** — not part of P2-19 / #75.
+- **`POST /chat/confirm`**: Service loads proposal by `(session_id, proposal_id)`; if `accepted`, transition `governance_store` to `APPROVED`, enqueue async OM write-back (`services/governance_writeback.py`), then clear pending. If rejected, clear pending and return cancellation copy per [APIContract.md](../Architecture/APIContract.md).
 - **`POST /chat/cancel`**: Clear session pending + any ephemeral LangGraph checkpoint if introduced later.
 - **Errors**: `proposal_not_found`, `confirmation_expired` — already in contract.
 
 ## OM write-back (P2-22)
 
-- On transition to **`APPROVED`** or **`DRIFT_DETECTED`**, enqueue async task to patch entity custom/extension fields (exact OM JSON Patch shape TBD against server version; use MCP `patch_entity` with validated args).
+- On transition to **`APPROVED`** or **`DRIFT_DETECTED`**, enqueue async task to patch entity custom/extension fields using validated `patch_entity` args.
 - Suggested property keys (string values): `governance_state`, `governance_lineage_snapshot_hash`, `governance_approved_tags_json` (or equivalent).
 - **References**: [OpenMetadata REST / metadata APIs](https://docs.open-metadata.org/) — verify field names against deployed OM 1.6.x.
 

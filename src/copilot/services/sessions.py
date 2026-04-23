@@ -19,11 +19,12 @@ from datetime import UTC, datetime
 from typing import Any
 from uuid import UUID
 
-from copilot.clients import om_mcp
 from copilot.middleware.error_envelope import ConfirmationExpired, ProposalNotFound
 from copilot.models.chat import PendingSession, ToolCallProposal
+from copilot.models.governance_state import GovernanceState
 from copilot.observability import get_logger
-from copilot.services.tool_audit import summarize_tool_result
+from copilot.services import governance_store
+from copilot.services.governance_writeback import enqueue_writeback_for_state
 
 log = get_logger(__name__)
 
@@ -124,28 +125,36 @@ async def confirm_chat_proposal(
             "ts": now.isoformat(),
         }
 
-    start = datetime.now(UTC)
     tool_name = str(pending.tool_name)
-    result = await asyncio.to_thread(om_mcp.call_tool, tool_name, pending.arguments)
+    entity_fqn = _extract_entity_fqn(pending.arguments)
+    if entity_fqn:
+        await _transition_if_possible(
+            entity_fqn,
+            GovernanceState.APPROVED,
+            evidence=f"confirmed:{tool_name}",
+        )
+        await enqueue_writeback_for_state(
+            entity_fqn=entity_fqn,
+            governance_state=GovernanceState.APPROVED,
+            base_patch_arguments=pending.arguments,
+        )
     end = datetime.now(UTC)
-    duration_ms = int((end - start).total_seconds() * 1000)
     log.info(
-        "sessions.confirm.executed",
+        "sessions.confirm.enqueued",
         session_id=key,
         proposal_id=str(proposal_id),
         tool=tool_name,
-        duration_ms=duration_ms,
     )
 
     return {
         "request_id": str(request_id),
         "session_id": key,
-        "response": _success_message(tool_name, summarize_tool_result(result)),
+        "response": _success_message(tool_name),
         "audit_log": [
             {
                 "tool_name": tool_name,
                 "confirmed_by_user": True,
-                "duration_ms": duration_ms,
+                "duration_ms": None,
                 "success": True,
             }
         ],
@@ -153,8 +162,39 @@ async def confirm_chat_proposal(
     }
 
 
-def _success_message(tool_name: str, summary: str) -> str:
-    base = f"Done. Executed `{tool_name}`."
-    if summary:
-        return f"{base} {summary[:400]}"
-    return base
+async def enqueue_drift_writeback(entity_fqn: str, patch_arguments: dict[str, Any]) -> None:
+    """Enqueue write-back for a drifted entity (used by drift poller paths)."""
+    await _transition_if_possible(
+        entity_fqn,
+        GovernanceState.DRIFT_DETECTED,
+        evidence="drift_detected",
+    )
+    await enqueue_writeback_for_state(
+        entity_fqn=entity_fqn,
+        governance_state=GovernanceState.DRIFT_DETECTED,
+        base_patch_arguments=patch_arguments,
+    )
+
+
+async def _transition_if_possible(
+    entity_fqn: str,
+    to_state: GovernanceState,
+    *,
+    evidence: str,
+) -> None:
+    try:
+        await governance_store.transition(entity_fqn, to_state, evidence=evidence)
+    except governance_store.GovernanceTransitionError:
+        log.debug("sessions.governance.transition.skip", entity_fqn=entity_fqn, to_state=to_state)
+
+
+def _extract_entity_fqn(arguments: dict[str, Any]) -> str | None:
+    for key in ("entityFqn", "entity_fqn", "fqn", "fullyQualifiedName"):
+        value = arguments.get(key)
+        if isinstance(value, str) and value.strip():
+            return value.strip()
+    return None
+
+
+def _success_message(tool_name: str) -> str:
+    return f"Done. Queued `{tool_name}` write-back. Governance state updated."

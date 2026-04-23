@@ -177,6 +177,20 @@ class TestValidateProposal:
         assert proposals[0].risk_level == RiskLevel.HARD_WRITE
         assert proposals[0].expires_at is not None
 
+    @patch("copilot.services.agent.governance_store.transition", new_callable=AsyncMock)
+    async def test_marks_scanned_for_entity_proposals(
+        self, mock_transition: AsyncMock, base_state: AgentState
+    ) -> None:
+        base_state["tool_proposals"] = [
+            {
+                "name": "patch_entity",
+                "arguments": {"entityFqn": "svc.db.schema.table", "patch": []},
+                "rationale": "tag",
+            },
+        ]
+        await validate_proposal(base_state)
+        assert mock_transition.await_count == 1
+
 
 class TestToolAllowlist:
     """Tests for assert_tool_allowlisted."""
@@ -246,6 +260,20 @@ class TestHitlGate:
 
         assert len(result["tool_proposals"]) == 1  # only the read
         assert result["pending_confirmation"] is not None
+
+    @patch("copilot.services.agent.governance_store.transition", new_callable=AsyncMock)
+    async def test_marks_suggested_for_write_proposals(
+        self, mock_transition: AsyncMock, base_state: AgentState
+    ) -> None:
+        write_proposal = ToolCallProposal(
+            request_id=uuid4(),
+            tool_name=ToolName.PATCH_ENTITY,
+            arguments={"entityFqn": "svc.db.schema.table", "patch": []},
+            risk_level=RiskLevel.HARD_WRITE,
+        )
+        base_state["tool_proposals"] = [write_proposal]
+        await hitl_gate(base_state)
+        assert mock_transition.await_count == 1
 
 
 class TestExecuteTool:

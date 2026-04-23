@@ -15,7 +15,7 @@
 from __future__ import annotations
 
 from datetime import UTC, datetime, timedelta
-from unittest.mock import patch
+from unittest.mock import AsyncMock, patch
 from uuid import UUID, uuid4
 
 import pytest
@@ -26,6 +26,7 @@ from copilot.models import RiskLevel, ToolCallProposal, ToolName
 from copilot.services.sessions import (
     cancel_chat_session,
     confirm_chat_proposal,
+    enqueue_drift_writeback,
     reset_session_store_for_tests,
     set_pending,
 )
@@ -58,17 +59,21 @@ def _write_proposal(
 
 
 @pytest.mark.asyncio
-async def test_confirm_accept_happy_path_calls_mcp_and_clears_store() -> None:
+async def test_confirm_accept_happy_path_enqueues_writeback_and_clears_store() -> None:
     sid = uuid4()
     req = uuid4()
     prop = _write_proposal(session_request_id=req)
     pid = prop.proposal_id
     await set_pending(sid, prop)
 
-    with patch("copilot.services.sessions.om_mcp.call_tool", return_value={"ok": True}) as m:
+    with patch("copilot.services.sessions.enqueue_writeback_for_state", new_callable=AsyncMock) as m:
         out = await confirm_chat_proposal(sid, pid, True, request_id=uuid4())
 
-    m.assert_called_once_with("patch_entity", prop.arguments)
+    m.assert_awaited_once()
+    call_kwargs = m.await_args.kwargs
+    assert call_kwargs["entity_fqn"] == "db.schema.t"
+    assert call_kwargs["governance_state"].value == "approved"
+    assert call_kwargs["base_patch_arguments"] == prop.arguments
     assert out["session_id"] == str(sid)
     assert len(out["audit_log"]) == 1
     assert out["audit_log"][0]["confirmed_by_user"] is True
@@ -107,10 +112,10 @@ async def test_confirm_reject_does_not_call_mcp() -> None:
     prop = _write_proposal()
     await set_pending(sid, prop)
 
-    with patch("copilot.services.sessions.om_mcp.call_tool") as m:
+    with patch("copilot.services.sessions.enqueue_writeback_for_state", new_callable=AsyncMock) as m:
         out = await confirm_chat_proposal(sid, prop.proposal_id, False, request_id=uuid4())
 
-    m.assert_not_called()
+    m.assert_not_awaited()
     assert out["audit_log"] == []
     assert "Cancelled" in out["response"]
 
@@ -140,7 +145,7 @@ async def test_post_chat_confirm_http_200(client: TestClient) -> None:
     prop = _write_proposal()
     await set_pending(sid, prop)
 
-    with patch("copilot.services.sessions.om_mcp.call_tool", return_value={"ok": True}):
+    with patch("copilot.services.sessions.enqueue_writeback_for_state", new_callable=AsyncMock):
         r = client.post(
             "/api/v1/chat/confirm",
             json={
@@ -153,3 +158,15 @@ async def test_post_chat_confirm_http_200(client: TestClient) -> None:
     body = r.json()
     assert body["session_id"] == str(sid)
     assert body["audit_log"][0]["tool_name"] == "patch_entity"
+
+
+@pytest.mark.asyncio
+async def test_enqueue_drift_writeback_enqueues_once() -> None:
+    with (
+        patch("copilot.services.sessions._transition_if_possible", new_callable=AsyncMock) as transition,
+        patch("copilot.services.sessions.enqueue_writeback_for_state", new_callable=AsyncMock) as enqueue,
+    ):
+        await enqueue_drift_writeback("svc.db.schema.table", {"entityFqn": "svc.db.schema.table", "patch": []})
+
+    transition.assert_awaited_once()
+    enqueue.assert_awaited_once()

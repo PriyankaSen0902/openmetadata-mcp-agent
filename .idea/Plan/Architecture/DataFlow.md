@@ -32,7 +32,7 @@ sequenceDiagram
 
 ## Write path with HITL (auto-classify / patch_entity)
 
-`POST /chat/confirm` is a **separate HTTP entry** (not a LangGraph node): it uses the **session store** and then MCP — see [AgentPipeline.md](./AgentPipeline.md).
+`POST /chat/confirm` is a **separate HTTP entry** (not a LangGraph node): it resolves pending state in `sessions`, transitions governance state, and enqueues service-layer OM write-back — see [AgentPipeline.md](./AgentPipeline.md).
 
 ```mermaid
 sequenceDiagram
@@ -42,6 +42,7 @@ sequenceDiagram
     participant Sess as SessionStore
     participant A as LangGraph_Agent
     participant LLM as OpenAI_GPT4o_mini
+    participant GW as GovernanceWriteback
     participant MCP as OM_MCP
     participant GS as GovernanceStore
 
@@ -56,11 +57,11 @@ sequenceDiagram
 
     U->>UI: Confirm
     UI->>API: POST /api/v1/chat/confirm
-    API->>Sess: resolve proposal_id
-    Sess-->>API: ToolCallProposal
-    API->>MCP: patch_entity (approved)
-    MCP-->>API: success
-    API->>GS: transition APPROVED
+    API->>Sess: resolve proposal_id + accepted=true
+    Sess->>GS: transition APPROVED
+    Sess->>GW: enqueue write-back (APPROVED)
+    GW->>MCP: patch_entity async
+    MCP-->>GW: success/failure logged
     API-->>UI: 200 + audit_log
 ```
 

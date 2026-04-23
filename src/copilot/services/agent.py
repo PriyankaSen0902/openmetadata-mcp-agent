@@ -51,7 +51,9 @@ from copilot.middleware.error_envelope import (
 )
 from copilot.models import RiskLevel, ToolCallProposal, ToolCallRecord, ToolName
 from copilot.models.chat import risk_level_for
+from copilot.models.governance_state import GovernanceState
 from copilot.observability import get_logger
+from copilot.services import governance_store
 from copilot.services.sessions import set_pending
 from copilot.services.tool_audit import redact_tool_arguments, summarize_tool_result
 
@@ -329,6 +331,7 @@ async def validate_proposal(state: AgentState) -> AgentState:
             expires_at=datetime.now(UTC) + CONFIRMATION_TTL if risk != RiskLevel.READ else None,
         )
         validated.append(tcp)
+        await _mark_scanned_if_possible(tcp)
 
     state["tool_proposals"] = validated
     log.info("agent.validate_proposal.complete", validated_count=len(validated))
@@ -367,6 +370,7 @@ async def hitl_gate(state: AgentState) -> AgentState:
         # Return the first write proposal as pending_confirmation
         pending = write_proposals[0]
         state["pending_confirmation"] = pending.model_dump(mode="json")
+        await _mark_suggested_if_possible(pending)
         log.info(
             "agent.hitl_gate.confirmation_required",
             tool=str(pending.tool_name),
@@ -380,6 +384,42 @@ async def hitl_gate(state: AgentState) -> AgentState:
         writes=len(write_proposals),
     )
     return state
+
+
+async def _mark_scanned_if_possible(proposal: ToolCallProposal) -> None:
+    fqn = _extract_entity_fqn(proposal.arguments)
+    if not fqn:
+        return
+    try:
+        await governance_store.transition(
+            fqn,
+            GovernanceState.SCANNED,
+            evidence=f"validated:{proposal.tool_name}",
+        )
+    except governance_store.GovernanceTransitionError:
+        log.debug("agent.governance.scanned.skip", fqn=fqn)
+
+
+async def _mark_suggested_if_possible(proposal: ToolCallProposal) -> None:
+    fqn = _extract_entity_fqn(proposal.arguments)
+    if not fqn:
+        return
+    try:
+        await governance_store.transition(
+            fqn,
+            GovernanceState.SUGGESTED,
+            evidence=f"pending_confirmation:{proposal.tool_name}",
+        )
+    except governance_store.GovernanceTransitionError:
+        log.debug("agent.governance.suggested.skip", fqn=fqn)
+
+
+def _extract_entity_fqn(arguments: dict[str, Any]) -> str | None:
+    for key in ("entityFqn", "entity_fqn", "fqn", "fullyQualifiedName"):
+        value = arguments.get(key)
+        if isinstance(value, str) and value.strip():
+            return value.strip()
+    return None
 
 
 # =============================================================================

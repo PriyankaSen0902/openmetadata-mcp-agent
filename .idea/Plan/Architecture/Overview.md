@@ -9,6 +9,7 @@ graph TB
         API["FastAPI Backend<br/>POST /chat, /chat/confirm, /healthz, /metrics"]
         Sessions["SessionStore<br/>pending proposals by session_id"]
         GovStore["GovernanceStore<br/>FSM per entity FQN"]
+        GovWriteback["GovernanceWriteback<br/>async patch_entity enqueue"]
         DriftW["DriftWorker<br/>lifespan background poll"]
         Agent["Agent Orchestrator<br/>LangGraph + GPT-4o-mini"]
         Validator["LLM Output Validator<br/>Pydantic schema check"]
@@ -36,10 +37,13 @@ graph TB
     UI -->|"REST, localhost only"| API
     API --> Sessions
     API --> Agent
+    Sessions --> GovStore
+    Sessions --> GovWriteback
     Agent --> GovStore
     DriftW --> GovStore
+    DriftW --> GovWriteback
     DriftW --> MCPClient
-    GovStore -.->|"write-back on APPROVED or DRIFT"| MCPClient
+    GovWriteback --> MCPClient
     Agent --> GovEngine
     GovEngine --> Agent
     Agent -->|"escaped + truncated prompt"| OpenAI
@@ -65,6 +69,9 @@ graph TB
 | **Agent Orchestrator**     | LangGraph + `langchain-openai`                       | NL understanding, intent → tool selection, multi-step workflows. (`langchain-mcp-adapters` is Phase 3 only, for the GitHub MCP — OM uses `data-ai-sdk[langchain]` natively.)                           |
 | **LLM Output Validator**   | Pydantic v2                                          | Every LLM JSON tool-call proposal is parsed into a `ToolCallProposal` model before execution; on parse failure, returns `llm_invalid_output` (502) per [DataModel.md](./DataModel.md)                  |
 | **HITL Confirmation Gate** | Python service                                       | Every `soft_write` and `hard_write` tool call is held as `pending_confirmation`; user must accept via `POST /chat/confirm`; expires after 5 min                                                        |
+| **Session Store**          | In-memory service (`sessions.py`)                    | Stores pending proposal by `session_id`; confirm/cancel resolve proposal lifecycle and clear consumed rows                                                                                                 |
+| **Governance Store**       | In-memory FSM store (`governance_store.py`)          | Tracks per-FQN lifecycle transitions (`SCANNED` → `SUGGESTED` → `APPROVED` …); rejects illegal edges with typed transition errors                                                                       |
+| **Governance Write-back**  | Async service (`governance_writeback.py`)            | Enqueues `patch_entity` updates on `APPROVED` / `DRIFT_DETECTED`; appends extension keys `governance_state`, `governance_approved_tags_json`, `governance_lineage_snapshot_hash`                      |
 | **MCP Client**             | `data-ai-sdk[langchain]` v0.1.2+                     | Connects to OM MCP server via HTTP POST `/mcp` (JSON-RPC 2.0); Bearer JWT auth; `pybreaker` circuit breaker; `tenacity` retry; httpx timeouts per [NFRs.md](../Project/NFRs.md)                        |
 | **Governance Engine**      | Python services in `src/copilot/services/`           | Auto-classification with prompt-injection escaping ([Security/PromptInjectionMitigation.md](../Security/PromptInjectionMitigation.md)), lineage→English summarizer, governance summary aggregator      |
 | **Observability**          | `structlog` (JSON) + `prometheus-client`             | Structured logs with `request_id` propagation; `/metrics` exposing the 4 Golden Signals; PII-redaction processor                                                                                       |
