@@ -84,7 +84,7 @@ class AgentState(TypedDict):
     error: str | None              # Error if any
 ```
 
-> **Note:** The production `AgentState` in `agent.py` is a `TypedDict` with fields such as `tool_proposals`, `pending_confirmation`, `final_response`, and (planned) `evidence_gap` — see [DataModel.md](./DataModel.md). The simplified box above is illustrative only.
+> **Note:** The production `AgentState` in `agent.py` is a `TypedDict` with fields such as `tool_proposals`, `pending_confirmation`, `final_response`, and `evidence_gap` — see [DataModel.md](./DataModel.md). The simplified box above is illustrative only.
 
 ## Intent Classification
 

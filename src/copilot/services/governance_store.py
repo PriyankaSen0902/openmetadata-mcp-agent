@@ -73,6 +73,15 @@ async def get_or_create(fqn: str) -> EntityGovernanceRecord:
         return row
 
 
+async def get_approved_fqns() -> list[str]:
+    """Return a list of FQNs that are in APPROVED or ENFORCED states."""
+    async with _lock:
+        return [
+            fqn for fqn, row in _by_fqn.items()
+            if row.state in (GovernanceState.APPROVED, GovernanceState.ENFORCED)
+        ]
+
+
 async def transition(
     fqn: str,
     to: GovernanceState,

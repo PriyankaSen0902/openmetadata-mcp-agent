@@ -218,6 +218,22 @@ class TestValidateProposal:
         await validate_proposal(base_state)
         assert mock_transition.await_count == 1
 
+    async def test_sets_evidence_gap_for_classify_without_proposals(self, base_state: AgentState) -> None:
+        """Sets evidence_gap when intent is classify and no valid proposals remain."""
+        base_state["intent"] = "classify"
+        base_state["tool_proposals"] = []
+        result = await validate_proposal(base_state)
+        assert result.get("evidence_gap") is True
+
+    async def test_does_not_set_evidence_gap_if_proposals_exist(self, base_state: AgentState) -> None:
+        """Does not set evidence_gap if proposals are successfully validated."""
+        base_state["intent"] = "classify"
+        base_state["tool_proposals"] = [
+            {"name": "search_metadata", "arguments": {"query": "test"}, "rationale": "search"}
+        ]
+        result = await validate_proposal(base_state)
+        assert result.get("evidence_gap") is not True
+
 
 class TestToolAllowlist:
     """Tests for assert_tool_allowlisted."""
@@ -410,6 +426,51 @@ class TestFormatResponse:
         assert result["final_response"] is not None
         assert result["final_response"] is not None
         assert "Result 1" in result["final_response"]
+
+    @patch("copilot.services.agent.openai_client.call_chat", new_callable=AsyncMock)
+    async def test_injects_evidence_gap_prompt(
+        self, mock_llm: AsyncMock, base_state: AgentState
+    ) -> None:
+        """If evidence_gap is True, formatting context includes the humility instruction."""
+        mock_llm.return_value = {"content": "ok", "tokens_prompt": 1, "tokens_completion": 1}
+        base_state["evidence_gap"] = True
+        await format_response(base_state)
+        
+        call_kwargs = mock_llm.call_args.kwargs if mock_llm.call_args.kwargs else mock_llm.call_args[1]
+        messages = call_kwargs.get("messages") or mock_llm.call_args[0][0]
+        system_call_content = messages[1]["content"]
+        assert "admit humility" in system_call_content
+
+    @patch("copilot.services.agent.openai_client.call_chat", new_callable=AsyncMock)
+    async def test_injects_causal_impact_prompt(
+        self, mock_llm: AsyncMock, base_state: AgentState
+    ) -> None:
+        """If classify intent and downstream edges present, formatting context includes causal impact."""
+        mock_llm.return_value = {"content": "ok", "tokens_prompt": 1, "tokens_completion": 1}
+        base_state["intent"] = "classify"
+        base_state["tool_results"] = [{"downstreamEdges": []}]
+        await format_response(base_state)
+        
+        call_kwargs = mock_llm.call_args.kwargs if mock_llm.call_args.kwargs else mock_llm.call_args[1]
+        messages = call_kwargs.get("messages") or mock_llm.call_args[0][0]
+        system_call_content = messages[1]["content"]
+        assert "Causal downstream impact detected" in system_call_content
+
+    @patch("copilot.services.agent.openai_client.call_chat", new_callable=AsyncMock)
+    @patch("copilot.services.agent.governance_store.get_approved_fqns", new_callable=AsyncMock)
+    async def test_injects_similarity_prompt(
+        self, mock_get_approved: AsyncMock, mock_llm: AsyncMock, base_state: AgentState
+    ) -> None:
+        """If FQN is highly similar to approved ones, formatting context includes similarity warning."""
+        mock_get_approved.return_value = ["test.db.schema.table"]
+        mock_llm.return_value = {"content": "ok", "tokens_prompt": 1, "tokens_completion": 1}
+        base_state["tool_proposals"] = [{"arguments": {"fqn": "test.db.schema.table"}}]
+        await format_response(base_state)
+        
+        call_kwargs = mock_llm.call_args.kwargs if mock_llm.call_args.kwargs else mock_llm.call_args[1]
+        messages = call_kwargs.get("messages") or mock_llm.call_args[0][0]
+        system_call_content = messages[1]["content"]
+        assert "Opinionated Governance Assistant:" in system_call_content
 
 
 class TestRunChatTurn:

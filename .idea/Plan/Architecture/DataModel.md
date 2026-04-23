@@ -184,7 +184,7 @@ class DriftReport(BaseModel):
     compared_at: datetime
 ```
 
-### LangGraph `AgentState` extensions (planned)
+### LangGraph `AgentState` extensions
 
 The runtime `AgentState` TypedDict in [`src/copilot/services/agent.py`](../../src/copilot/services/agent.py) gains optional keys:
 

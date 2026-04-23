@@ -106,6 +106,7 @@ class AgentState(TypedDict, total=False):
     tokens_prompt: int
     tokens_completion: int
     error: str | None
+    evidence_gap: bool
 
 
 def _initial_state(
@@ -385,6 +386,9 @@ async def validate_proposal(state: AgentState) -> AgentState:
         validated.append(tcp)
         await _mark_scanned_if_possible(tcp)
 
+    if state.get("intent") == "classify" and not validated:
+        state["evidence_gap"] = True
+
     state["tool_proposals"] = validated
     log.info("agent.validate_proposal.complete", validated_count=len(validated))
     return state
@@ -595,7 +599,15 @@ async def format_response(state: AgentState) -> AgentState:
 
     # Build context for the formatter
     context_parts = [f"User question: {state['user_message']}"]
-    context_parts.append(f"Classified intent: {state.get('intent', 'unknown')}")
+    intent = state.get('intent', 'unknown')
+    context_parts.append(f"Classified intent: {intent}")
+
+    if state.get("evidence_gap"):
+        context_parts.append(
+            "\nIMPORTANT: The system could not find enough evidence to classify this. "
+            "Please admit humility, state what is missing, and ask the user for more context. "
+            "Do not fabricate tags."
+        )
 
     results = state.get("tool_results", [])
     if results:
@@ -611,6 +623,36 @@ async def format_response(state: AgentState) -> AgentState:
             f"Risk: {pending.get('risk_level', 'unknown')}\n"
             f"Tell the user they need to confirm this operation."
         )
+
+    # Causal impact for classify intent
+    if intent == "classify" and results:
+        # Check if lineage info is present in the results
+        for result in results:
+            if "downstreamEdges" in str(result) or "downstream" in str(result):
+                context_parts.append(
+                    "\nIMPORTANT: Causal downstream impact detected. "
+                    "Explain what breaks if this entity is untagged (e.g., Tier 1 assets might be at risk)."
+                )
+                break
+
+    # Similarity scoring
+    candidate_fqns = []
+    for proposal in state.get("tool_proposals", []) + ([pending] if pending else []):
+        fqn = _extract_entity_fqn(proposal.get("arguments", {}) if isinstance(proposal, dict) else proposal.arguments)
+        if fqn:
+            candidate_fqns.append(fqn)
+
+    if candidate_fqns:
+        from copilot.services.similarity import compute_similarity
+        approved_fqns = await governance_store.get_approved_fqns()
+        for fqn in candidate_fqns:
+            score = compute_similarity(fqn, approved_fqns)
+            if score > 0.85:
+                context_parts.append(
+                    f"\nOpinionated Governance Assistant: Entity '{fqn}' is highly similar (score: {score:.2f}) "
+                    f"to previously approved entities. Please highlight this in your response."
+                )
+                break
 
     try:
         result = await openai_client.call_chat(
