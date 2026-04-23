@@ -47,7 +47,9 @@ def _write_proposal(
 ) -> ToolCallProposal:
     rid = session_request_id or uuid4()
     pid = proposal_id if proposal_id is not None else uuid4()
-    exp = datetime.now(UTC) + (expires_delta if expires_delta is not None else timedelta(minutes=5))
+    exp = datetime.now(UTC) + (
+        expires_delta if expires_delta is not None else timedelta(minutes=5)
+    )
     return ToolCallProposal(
         proposal_id=pid,
         request_id=rid,
@@ -66,7 +68,10 @@ async def test_confirm_accept_happy_path_enqueues_writeback_and_clears_store() -
     pid = prop.proposal_id
     await set_pending(sid, prop)
 
-    with patch("copilot.services.sessions.enqueue_writeback_for_state", new_callable=AsyncMock) as m:
+    with patch(
+        "copilot.services.sessions.enqueue_writeback_for_state",
+        new_callable=AsyncMock,
+    ) as m:
         out = await confirm_chat_proposal(sid, pid, True, request_id=uuid4())
 
     m.assert_awaited_once()
@@ -112,7 +117,10 @@ async def test_confirm_reject_does_not_call_mcp() -> None:
     prop = _write_proposal()
     await set_pending(sid, prop)
 
-    with patch("copilot.services.sessions.enqueue_writeback_for_state", new_callable=AsyncMock) as m:
+    with patch(
+        "copilot.services.sessions.enqueue_writeback_for_state",
+        new_callable=AsyncMock,
+    ) as m:
         out = await confirm_chat_proposal(sid, prop.proposal_id, False, request_id=uuid4())
 
     m.assert_not_awaited()
@@ -145,7 +153,10 @@ async def test_post_chat_confirm_http_200(client: TestClient) -> None:
     prop = _write_proposal()
     await set_pending(sid, prop)
 
-    with patch("copilot.services.sessions.enqueue_writeback_for_state", new_callable=AsyncMock):
+    with patch(
+        "copilot.services.sessions.enqueue_writeback_for_state",
+        new_callable=AsyncMock,
+    ):
         r = client.post(
             "/api/v1/chat/confirm",
             json={
@@ -163,10 +174,19 @@ async def test_post_chat_confirm_http_200(client: TestClient) -> None:
 @pytest.mark.asyncio
 async def test_enqueue_drift_writeback_enqueues_once() -> None:
     with (
-        patch("copilot.services.sessions._transition_if_possible", new_callable=AsyncMock) as transition,
-        patch("copilot.services.sessions.enqueue_writeback_for_state", new_callable=AsyncMock) as enqueue,
+        patch(
+            "copilot.services.sessions._transition_if_possible",
+            new_callable=AsyncMock,
+        ) as transition,
+        patch(
+            "copilot.services.sessions.enqueue_writeback_for_state",
+            new_callable=AsyncMock,
+        ) as enqueue,
     ):
-        await enqueue_drift_writeback("svc.db.schema.table", {"entityFqn": "svc.db.schema.table", "patch": []})
+        await enqueue_drift_writeback(
+            "svc.db.schema.table",
+            {"entityFqn": "svc.db.schema.table", "patch": []},
+        )
 
     transition.assert_awaited_once()
     enqueue.assert_awaited_once()
