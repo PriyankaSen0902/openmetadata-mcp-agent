@@ -150,6 +150,13 @@ class Settings(BaseSettings):
     openai_timeout_seconds: float = Field(default=8.0, gt=0)
     openai_max_retries: int = Field(default=2, ge=0)
 
+    # ---------- Drift polling ----------
+    drift_poll_interval_seconds: float = Field(
+        default=60.0,
+        gt=0,
+        description="Seconds between background drift scans",
+    )
+
     # ---------- Logging ----------
     log_level: str = Field(default="info", pattern=r"^(debug|info|warning|error)$")
 

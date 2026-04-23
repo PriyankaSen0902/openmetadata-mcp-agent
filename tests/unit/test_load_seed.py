@@ -28,7 +28,7 @@ sys.path.insert(0, str(ROOT / "scripts"))
 
 class TestLoadSeedImport:
     def test_load_seed_module_importable(self):
-        import load_seed
+        import load_seed  # type: ignore[import-not-found]
 
         assert hasattr(load_seed, "main")
         assert hasattr(load_seed, "SEED_FILE")

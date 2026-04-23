@@ -24,6 +24,7 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
+from typing import Any
 
 import pytest
 
@@ -77,7 +78,7 @@ class TestSeedStructure:
 
 
 class TestPiiTables:
-    def _pii_tables(self, tables):
+    def _pii_tables(self, tables: list[dict[str, Any]]) -> list[dict[str, Any]]:
         return [t for t in tables if any(tag for c in t["columns"] for tag in c.get("tags", []))]
 
     def test_minimum_pii_table_count(self, tables):
@@ -98,7 +99,7 @@ class TestPiiTables:
 
 
 class TestPromptInjection:
-    def _injection_tables(self, tables):
+    def _injection_tables(self, tables: list[dict[str, Any]]) -> list[dict[str, Any]]:
         return [t for t in tables if "injection" in t.get("description", "").lower()]
 
     def test_two_injection_tables_exist(self, tables):

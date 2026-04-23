@@ -211,7 +211,7 @@ class TestCallTool:
     @patch("copilot.clients.om_mcp._get_sdk_client")
     def test_raises_mcp_unavailable_on_tool_execution_error(self, mock_get_sdk: MagicMock) -> None:
         """MCPToolExecutionError maps to McpUnavailable."""
-        from ai_sdk.mcp._client import MCPToolExecutionError  # type: ignore[import-untyped]
+        from ai_sdk.mcp._client import MCPToolExecutionError  # type: ignore[attr-defined]
 
         mock_get_sdk.return_value = _mock_sdk(
             side_effect=MCPToolExecutionError(tool="search_metadata", message="execution failed")

@@ -30,7 +30,7 @@ from urllib.error import HTTPError, URLError
 ROOT = Path(__file__).resolve().parent.parent.parent
 sys.path.insert(0, str(ROOT / "scripts"))
 
-import generate_bot_jwt  # noqa: E402
+import generate_bot_jwt  # type: ignore[import-not-found]  # noqa: E402
 
 
 def _mock_response(data: dict[str, Any], status: int = 200) -> MagicMock:
