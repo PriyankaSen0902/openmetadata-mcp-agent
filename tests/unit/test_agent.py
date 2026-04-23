@@ -391,6 +391,7 @@ class TestFormatResponse:
 
         result = await format_response(base_state)
 
+        assert result["final_response"] is not None
         assert "Found **2 tables**" in result["final_response"]
         assert result["tokens_prompt"] == 100
 
@@ -406,6 +407,7 @@ class TestFormatResponse:
 
         result = await format_response(base_state)
 
+        assert result["final_response"] is not None
         assert result["final_response"] is not None
         assert "Result 1" in result["final_response"]
 

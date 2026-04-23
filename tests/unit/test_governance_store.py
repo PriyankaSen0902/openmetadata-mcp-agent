@@ -41,8 +41,10 @@ def _shortest_paths_from_unknown() -> dict[GovernanceState, list[GovernanceState
     return paths
 
 
+from typing import AsyncGenerator
+
 @pytest.fixture(autouse=True)
-async def _clean_store() -> None:
+async def _clean_store() -> AsyncGenerator[None, None]:
     await reset_governance_store_for_tests()
     yield
     await reset_governance_store_for_tests()
