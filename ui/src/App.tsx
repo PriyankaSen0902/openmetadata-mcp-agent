@@ -282,7 +282,7 @@ export function App(): JSX.Element {
       const assistantMsg: ChatMessage = {
         role: 'assistant',
         content: data.response ?? '',
-        pending: data.pending_confirmation ?? undefined,
+        ...(data.pending_confirmation ? { pending: data.pending_confirmation } : {}),
       };
       setMessages((prev) => [...prev, assistantMsg]);
 
