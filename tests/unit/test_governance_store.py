@@ -15,6 +15,7 @@
 from __future__ import annotations
 
 from collections import deque
+from collections.abc import AsyncGenerator
 
 import pytest
 
@@ -40,8 +41,6 @@ def _shortest_paths_from_unknown() -> dict[GovernanceState, list[GovernanceState
                 q.append(v)
     return paths
 
-
-from typing import AsyncGenerator
 
 @pytest.fixture(autouse=True)
 async def _clean_store() -> AsyncGenerator[None, None]:

@@ -105,33 +105,51 @@ class TestClassifyIntent:
 class TestSelectTools:
     """Tests for the select_tools node."""
 
-    @patch("copilot.services.agent.openai_client.call_chat_json", new_callable=AsyncMock)
-    async def test_returns_tool_proposals_on_success(
-        self, mock_llm: AsyncMock, base_state: AgentState
-    ) -> None:
-        """LLM successfully selects tools and populates proposals."""
+    async def test_deterministic_route_skips_llm(self, base_state: AgentState) -> None:
+        """Common search queries are routed deterministically without an LLM call."""
         from copilot.services.agent import select_tools
 
-        mock_llm.return_value = {
-            "tools": [{"name": "search_metadata", "arguments": {"query": "test"}}],
-            "rationale": "search to find tables",
-        }
+        # "Show me all customer tables" is handled by the NL router fast-path
         result = await select_tools(base_state)
 
         proposals = result["tool_proposals"]
         assert len(proposals) == 1
         assert proposals[0]["name"] == "search_metadata"
-        assert proposals[0]["arguments"] == {"query": "test"}
-        assert proposals[0]["rationale"] == "search to find tables"
+        assert proposals[0]["arguments"]["query"] == "Show me all customer tables"
+
+    @patch("copilot.services.agent.openai_client.call_chat_json", new_callable=AsyncMock)
+    async def test_llm_fallback_on_ambiguous_query(
+        self, mock_llm: AsyncMock, base_state: AgentState
+    ) -> None:
+        """Queries that the router cannot handle fall through to the LLM."""
+        from copilot.services.agent import select_tools
+
+        # Glossary intent has no deterministic route → LLM tool selection
+        base_state["user_message"] = "Define term X for the business glossary"
+        base_state["intent"] = "glossary"
+
+        mock_llm.return_value = {
+            "tools": [{"name": "create_glossary_term", "arguments": {"name": "Revenue"}}],
+            "rationale": "user asked for glossary",
+        }
+        result = await select_tools(base_state)
+
+        proposals = result["tool_proposals"]
+        assert len(proposals) == 1
+        assert proposals[0]["name"] == "create_glossary_term"
+        mock_llm.assert_called_once()
 
     @patch("copilot.services.agent.openai_client.call_chat_json", new_callable=AsyncMock)
     async def test_returns_empty_proposals_on_llm_failure(
         self, mock_llm: AsyncMock, base_state: AgentState
     ) -> None:
-        """LLM failure results in empty proposals but does not crash."""
+        """LLM failure on ambiguous query results in empty proposals."""
         from copilot.middleware.error_envelope import LlmUnavailable
         from copilot.services.agent import select_tools
 
+        # Glossary intent falls through to LLM; simulate LLM failure
+        base_state["user_message"] = "Define term X for the business glossary"
+        base_state["intent"] = "glossary"
         mock_llm.side_effect = LlmUnavailable("timeout")
 
         result = await select_tools(base_state)
@@ -155,7 +173,9 @@ class TestSelectTools:
             "patch_entity",
         ]
         assert proposals[0]["arguments"]["queryFilter"] == "service:customer_db"
-        assert proposals[1]["arguments"]["entityFqn"] == "sample_mysql.default.customer_db.customers"
+        assert (
+            proposals[1]["arguments"]["entityFqn"] == "sample_mysql.default.customer_db.customers"
+        )
         assert len(proposals[2]["arguments"]["patch"]) == 3
         assert proposals[2]["arguments"]["approved_tags"] == [
             "sample_mysql.default.customer_db.customers.email:PII.Sensitive",
@@ -218,14 +238,18 @@ class TestValidateProposal:
         await validate_proposal(base_state)
         assert mock_transition.await_count == 1
 
-    async def test_sets_evidence_gap_for_classify_without_proposals(self, base_state: AgentState) -> None:
+    async def test_sets_evidence_gap_for_classify_without_proposals(
+        self, base_state: AgentState
+    ) -> None:
         """Sets evidence_gap when intent is classify and no valid proposals remain."""
         base_state["intent"] = "classify"
         base_state["tool_proposals"] = []
         result = await validate_proposal(base_state)
         assert result.get("evidence_gap") is True
 
-    async def test_does_not_set_evidence_gap_if_proposals_exist(self, base_state: AgentState) -> None:
+    async def test_does_not_set_evidence_gap_if_proposals_exist(
+        self, base_state: AgentState
+    ) -> None:
         """Does not set evidence_gap if proposals are successfully validated."""
         base_state["intent"] = "classify"
         base_state["tool_proposals"] = [
@@ -435,8 +459,10 @@ class TestFormatResponse:
         mock_llm.return_value = {"content": "ok", "tokens_prompt": 1, "tokens_completion": 1}
         base_state["evidence_gap"] = True
         await format_response(base_state)
-        
-        call_kwargs = mock_llm.call_args.kwargs if mock_llm.call_args.kwargs else mock_llm.call_args[1]
+
+        call_kwargs = (
+            mock_llm.call_args.kwargs if mock_llm.call_args.kwargs else mock_llm.call_args[1]
+        )
         messages = call_kwargs.get("messages") or mock_llm.call_args[0][0]
         system_call_content = messages[1]["content"]
         assert "admit humility" in system_call_content
@@ -450,8 +476,10 @@ class TestFormatResponse:
         base_state["intent"] = "classify"
         base_state["tool_results"] = [{"downstreamEdges": []}]
         await format_response(base_state)
-        
-        call_kwargs = mock_llm.call_args.kwargs if mock_llm.call_args.kwargs else mock_llm.call_args[1]
+
+        call_kwargs = (
+            mock_llm.call_args.kwargs if mock_llm.call_args.kwargs else mock_llm.call_args[1]
+        )
         messages = call_kwargs.get("messages") or mock_llm.call_args[0][0]
         system_call_content = messages[1]["content"]
         assert "Causal downstream impact detected" in system_call_content
@@ -466,8 +494,10 @@ class TestFormatResponse:
         mock_llm.return_value = {"content": "ok", "tokens_prompt": 1, "tokens_completion": 1}
         base_state["tool_proposals"] = [{"arguments": {"fqn": "test.db.schema.table"}}]
         await format_response(base_state)
-        
-        call_kwargs = mock_llm.call_args.kwargs if mock_llm.call_args.kwargs else mock_llm.call_args[1]
+
+        call_kwargs = (
+            mock_llm.call_args.kwargs if mock_llm.call_args.kwargs else mock_llm.call_args[1]
+        )
         messages = call_kwargs.get("messages") or mock_llm.call_args[0][0]
         system_call_content = messages[1]["content"]
         assert "Opinionated Governance Assistant:" in system_call_content

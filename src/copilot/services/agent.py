@@ -54,6 +54,7 @@ from copilot.models.chat import risk_level_for
 from copilot.models.governance_state import GovernanceState
 from copilot.observability import get_logger
 from copilot.services import governance_store
+from copilot.services.nl_router import route_query
 from copilot.services.sessions import set_pending
 from copilot.services.tool_audit import redact_tool_arguments, summarize_tool_result
 
@@ -251,12 +252,26 @@ def _auto_classification_proposals() -> list[dict[str, Any]]:
             "arguments": {
                 "entityType": "table",
                 "entityFqn": _DEMO_TABLE_FQN,
-                "approved_tags": [f"{_DEMO_TABLE_FQN}.{column}:PII.Sensitive" for column in _DEMO_PII_COLUMNS],
+                "approved_tags": [
+                    f"{_DEMO_TABLE_FQN}.{column}:PII.Sensitive" for column in _DEMO_PII_COLUMNS
+                ],
                 # Batch patch proposal for the three PII spot-check columns in seed/customer_db.json.
                 "patch": [
-                    {"op": "add", "path": "/columns/3/tags/-", "value": {"tagFQN": "PII.Sensitive"}},
-                    {"op": "add", "path": "/columns/4/tags/-", "value": {"tagFQN": "PII.Sensitive"}},
-                    {"op": "add", "path": "/columns/5/tags/-", "value": {"tagFQN": "PII.Sensitive"}},
+                    {
+                        "op": "add",
+                        "path": "/columns/3/tags/-",
+                        "value": {"tagFQN": "PII.Sensitive"},
+                    },
+                    {
+                        "op": "add",
+                        "path": "/columns/4/tags/-",
+                        "value": {"tagFQN": "PII.Sensitive"},
+                    },
+                    {
+                        "op": "add",
+                        "path": "/columns/5/tags/-",
+                        "value": {"tagFQN": "PII.Sensitive"},
+                    },
                 ],
             },
             "rationale": "Propose batch PII tagging for email/phone/ssn via HITL gate.",
@@ -265,7 +280,11 @@ def _auto_classification_proposals() -> list[dict[str, Any]]:
 
 
 async def select_tools(state: AgentState) -> AgentState:
-    """Node 2: Use LLM to select which MCP tools to call with what arguments.
+    """Node 2: Select tools — deterministic fast-path first, LLM fallback second.
+
+    Per NLQueryEngine.md: common query patterns (search, details, lineage)
+    are routed deterministically via ``nl_router.route_query`` to avoid
+    unnecessary LLM calls.  Only ambiguous queries fall through to the LLM.
 
     Args:
         state: Current state with ``intent`` and ``user_message``.
@@ -280,11 +299,31 @@ async def select_tools(state: AgentState) -> AgentState:
         state["tool_proposals"] = proposals
         log.info(
             "agent.select_tools.classify_chain",
+            request_id=state["request_id"],
             tool_count=len(proposals),
             tools=[p["name"] for p in proposals],
         )
         return state
 
+    # --- Fast path: deterministic routing ---
+    route = route_query(state["user_message"], intent=state.get("intent"))
+    if route is not None:
+        state["tool_proposals"] = [
+            {
+                "name": route.tool_name,
+                "arguments": route.arguments,
+                "rationale": route.rationale,
+            }
+        ]
+        log.info(
+            "agent.select_tools.routed",
+            request_id=state["request_id"],
+            tool=route.tool_name,
+            rationale=route.rationale,
+        )
+        return state
+
+    # --- Slow path: LLM-based tool selection ---
     intent_hint = INTENT_DESCRIPTIONS.get(state["intent"] or "search", "")
 
     try:
@@ -427,6 +466,7 @@ async def hitl_gate(state: AgentState) -> AgentState:
         pending = write_proposals[0]
         state["pending_confirmation"] = pending.model_dump(mode="json")
         await _mark_suggested_if_possible(pending)
+        await set_pending(UUID(state["session_id"]), pending)
         log.info(
             "agent.hitl_gate.confirmation_required",
             tool=str(pending.tool_name),
@@ -599,7 +639,7 @@ async def format_response(state: AgentState) -> AgentState:
 
     # Build context for the formatter
     context_parts = [f"User question: {state['user_message']}"]
-    intent = state.get('intent', 'unknown')
+    intent = state.get("intent", "unknown")
     context_parts.append(f"Classified intent: {intent}")
 
     if state.get("evidence_gap"):
@@ -648,12 +688,15 @@ async def format_response(state: AgentState) -> AgentState:
     # Similarity scoring
     candidate_fqns = []
     for proposal in state.get("tool_proposals", []) + ([pending] if pending else []):
-        fqn = _extract_entity_fqn(proposal.get("arguments", {}) if isinstance(proposal, dict) else proposal.arguments)
+        fqn = _extract_entity_fqn(
+            proposal.get("arguments", {}) if isinstance(proposal, dict) else proposal.arguments
+        )
         if fqn:
             candidate_fqns.append(fqn)
 
     if candidate_fqns:
         from copilot.services.similarity import compute_similarity
+
         approved_fqns = await governance_store.get_approved_fqns()
         for fqn in candidate_fqns:
             score = compute_similarity(fqn, approved_fqns)
@@ -701,7 +744,7 @@ def _should_execute(state: AgentState) -> Literal["execute_tool", "format_respon
     return "format_response"
 
 
-def build_graph() -> StateGraph:
+def build_graph() -> Any:
     """Build the LangGraph state machine for one chat turn.
 
     Returns:

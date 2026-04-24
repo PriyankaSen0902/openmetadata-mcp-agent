@@ -162,6 +162,7 @@ disallow_untyped_decorators = true
 no_implicit_reexport = true
 show_error_codes = true
 files = ["src/copilot"]
+plugins = ["pydantic.mypy"]
 
 [[tool.mypy.overrides]]
 module = "tests.*"

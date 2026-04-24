@@ -26,20 +26,20 @@ class TestModuleImports:
         from copilot.observability import metrics, redact
         from copilot.services import agent, prompt_safety
 
-        assert copilot.__version__
-        assert main.create_app
+        assert copilot.__version__ is not None
+        assert main.create_app is not None
         assert chat.router is not None
-        assert om_mcp.call_tool
-        assert openai_client.call_chat
-        assert settings.Settings
-        assert error_envelope.register_envelope_handlers
-        assert rate_limit.build_limiter
-        assert request_id.RequestIdMiddleware
-        assert chat_models.ChatSession
+        assert om_mcp.call_tool is not None
+        assert openai_client.call_chat is not None
+        assert settings.Settings is not None
+        assert error_envelope.register_envelope_handlers is not None
+        assert rate_limit.build_limiter is not None
+        assert request_id.RequestIdMiddleware is not None
+        assert chat_models.ChatSession is not None
         assert metrics.REGISTRY is not None
-        assert redact.make_redaction_processor
-        assert agent.assert_tool_allowlisted
-        assert prompt_safety.neutralize
+        assert redact.make_redaction_processor is not None
+        assert agent.assert_tool_allowlisted is not None
+        assert prompt_safety.neutralize is not None
 
 
 class TestHealthz:
@@ -93,7 +93,23 @@ class TestChatRoute:
         assert body["response"] == "Found matching tables."
 
         mock_run_chat_turn.assert_awaited_once()
+        assert mock_run_chat_turn.await_args is not None
         kwargs = mock_run_chat_turn.await_args.kwargs
         assert kwargs["user_message"] == "show me some tables"
         assert kwargs["session_id"] is None
         assert str(kwargs["request_id"]) == request_id
+
+    @patch("copilot.api.chat.run_chat_turn", new_callable=AsyncMock)
+    def test_chat_returns_safe_error_envelope_on_unhandled_error(
+        self, mock_run_chat_turn: AsyncMock, client: TestClient
+    ) -> None:
+        mock_run_chat_turn.side_effect = RuntimeError("token=secret-value")
+
+        response = client.post("/api/v1/chat", json={"message": "trigger error"})
+
+        assert response.status_code == 500
+        body = response.json()
+        assert body["code"] == "internal_error"
+        assert "request_id" in body
+        assert "ts" in body
+        assert "secret-value" not in body["message"]

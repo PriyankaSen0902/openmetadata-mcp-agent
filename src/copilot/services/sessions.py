@@ -128,8 +128,12 @@ async def confirm_chat_proposal(
     tool_name = str(pending.tool_name)
     entity_fqn = _extract_entity_fqn(pending.arguments)
     if entity_fqn:
-        await _transition_if_possible(entity_fqn, GovernanceState.SCANNED, evidence="confirmed:scanned")
-        await _transition_if_possible(entity_fqn, GovernanceState.SUGGESTED, evidence="confirmed:suggested")
+        await _transition_if_possible(
+            entity_fqn, GovernanceState.SCANNED, evidence="confirmed:scanned"
+        )
+        await _transition_if_possible(
+            entity_fqn, GovernanceState.SUGGESTED, evidence="confirmed:suggested"
+        )
         await _transition_if_possible(
             entity_fqn,
             GovernanceState.APPROVED,

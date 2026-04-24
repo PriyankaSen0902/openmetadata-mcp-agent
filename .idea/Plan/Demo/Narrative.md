@@ -16,8 +16,10 @@
 | Step | Action                                                          | Success signal                                                              |
 | ---- | --------------------------------------------------------------- | --------------------------------------------------------------------------- |
 | 1    | In chat: “Scan `customer_db` for PII columns and suggest tags.” | Response lists tables/columns with suggested tags (Markdown table OK).      |
-| 2    | If write flow: open confirmation modal (P2-12).                 | `proposal_id`, `risk_level: hard_write`, entity FQNs visible.               |
-| 3    | Click **Confirm**.                                              | `200` from `POST /api/v1/chat/confirm`; audit shows `patch_entity` success. |
+| 2    | If write flow: open confirmation modal (P2-12).                 | `proposal_id`, `risk_level: hard_write`, entity FQNs visible; **Confirm** / **Cancel** call `POST /api/v1/chat/confirm` with the **same** `session_id` returned from chat. |
+| 3    | Click **Confirm**.                                              | `200` from `POST /api/v1/chat/confirm`; audit shows `patch_entity` success (write-back path per P2-19). |
+
+**HITL UI detail (P2-12):** Modal shows risk badge (`HIGH RISK` for `patch_entity`), truncated argument preview, and expiry when present — judges can verify the gate before any catalog write-back is enqueued.
 
 **Measurable:** proposal (and post-confirm write-back) includes all 3 seed spot-check columns on `sample_mysql.default.customer_db.customers`:
 - `sample_mysql.default.customer_db.customers.email`
@@ -57,3 +59,15 @@
 ## Post-demo (catalog write-back — when P2-22 lands)
 
 Add **15 s**: Open OM entity page → show custom property **`governance_state`** (or agreed key) set by agent after approve/drift.
+
+---
+
+## Supplement — pitch-friendly arc (optional narration)
+
+**Title:** “Govern Your Data with a Conversation” (~2–3 minutes if used standalone).
+
+**Opening hook:** OpenMetadata’s mission is to reduce the governance loop chaos — scan, classify, confirm, apply, notify — compressed into one chat sentence with a confirmation gate and measurable `/metrics` outcomes (see [Project/PRD.md](../Project/PRD.md)).
+
+**Optional beats:** NL search without OpenSearch DSL; multi-MCP GitHub issue creation; value slide citing issues #26645 / #26608; architecture diagram from [Architecture/Overview.md](../Architecture/Overview.md).
+
+**Recording tips:** 1920×1080; OM dark accent `#7147E8`; smooth cursor; captions on key moments; terminal visible for clone→run under one minute. If live demo fails, follow [Demo/FailureRecovery.md](./FailureRecovery.md) (backup clip + tab-switch under 10 seconds).

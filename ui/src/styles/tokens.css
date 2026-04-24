@@ -140,6 +140,69 @@ body,
   margin-bottom: var(--space-md);
 }
 
+.app__chat-session {
+  color: var(--color-text-secondary);
+  font-family: var(--font-family-mono);
+  font-size: 12px;
+  margin-bottom: var(--space-sm);
+}
+
+.app__chat-log {
+  background-color: var(--color-bg-tertiary);
+  border: 1px solid var(--color-border-primary);
+  border-radius: var(--radius-sm);
+  padding: var(--space-sm);
+  min-height: 180px;
+  max-height: 320px;
+  overflow-y: auto;
+  margin-bottom: var(--space-sm);
+}
+
+.app__chat-empty {
+  color: var(--color-text-tertiary);
+}
+
+.app__chat-message {
+  border: 1px solid var(--color-border-primary);
+  border-radius: var(--radius-sm);
+  padding: var(--space-sm);
+  margin-bottom: var(--space-sm);
+}
+
+.app__chat-message:last-child {
+  margin-bottom: 0;
+}
+
+.app__chat-message--user {
+  background-color: #222033;
+}
+
+.app__chat-message--assistant {
+  background-color: #1a1727;
+}
+
+.app__chat-message-role {
+  text-transform: uppercase;
+  color: var(--color-text-secondary);
+  font-size: 11px;
+  margin-bottom: var(--space-xs);
+}
+
+.app__chat-message-text {
+  white-space: pre-wrap;
+  font-family: var(--font-family-base);
+}
+
+.app__chat-loading {
+  color: var(--color-text-warning);
+  margin-top: var(--space-xs);
+}
+
+.app__chat-error {
+  color: var(--color-text-error);
+  margin-top: var(--space-sm);
+}
+
 .app__chat-input {
   width: 100%;
   background-color: var(--color-bg-tertiary);
@@ -183,3 +246,266 @@ code {
   border-radius: var(--radius-sm);
   font-size: 0.9em;
 }
+
+/* ---------------------------------------------------------------------------
+   Chat messages
+   --------------------------------------------------------------------------- */
+
+.chat__messages {
+  max-height: 400px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+  margin-bottom: var(--space-md);
+  padding: var(--space-sm);
+}
+
+.chat__empty {
+  color: var(--color-text-tertiary);
+  text-align: center;
+  padding: var(--space-xl) 0;
+}
+
+.chat__bubble {
+  padding: var(--space-sm) var(--space-md);
+  border-radius: var(--radius-md);
+  max-width: 85%;
+  animation: fadeIn 0.2s ease-out;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.chat__bubble--user {
+  background: linear-gradient(135deg, var(--color-brand-primary), var(--color-brand-primary-hover));
+  color: var(--color-brand-primary-fg);
+  align-self: flex-end;
+  border-bottom-right-radius: var(--radius-sm);
+}
+
+.chat__bubble--assistant {
+  background-color: var(--color-bg-tertiary);
+  color: var(--color-text-primary);
+  align-self: flex-start;
+  border-bottom-left-radius: var(--radius-sm);
+  border: 1px solid var(--color-border-primary);
+}
+
+.chat__role {
+  display: block;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 2px;
+  opacity: 0.7;
+}
+
+.chat__content {
+  white-space: pre-wrap;
+  word-break: break-word;
+  line-height: 1.5;
+}
+
+.chat__pending-hint {
+  margin-top: var(--space-xs);
+  padding: var(--space-xs) var(--space-sm);
+  background-color: rgba(255, 209, 102, 0.1);
+  border: 1px solid rgba(255, 209, 102, 0.3);
+  border-radius: var(--radius-sm);
+  color: var(--color-text-warning);
+  font-size: 12px;
+}
+
+.chat__input-row {
+  display: flex;
+  gap: var(--space-sm);
+  align-items: flex-end;
+}
+
+.chat__input-row .app__chat-input {
+  flex: 1;
+  margin-bottom: 0;
+}
+
+/* ---------------------------------------------------------------------------
+   Risk badges
+   --------------------------------------------------------------------------- */
+
+.risk-badge {
+  display: inline-block;
+  padding: 2px 10px;
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+}
+
+.risk-badge--hard {
+  background: linear-gradient(135deg, #ff4757, #ff6b81);
+  color: #fff;
+}
+
+.risk-badge--soft {
+  background: linear-gradient(135deg, #ffa502, #ffd166);
+  color: #1a1a2e;
+}
+
+.risk-badge--read {
+  background: linear-gradient(135deg, #2ed573, #7bed9f);
+  color: #1a1a2e;
+}
+
+/* ---------------------------------------------------------------------------
+   HITL Confirmation modal
+   --------------------------------------------------------------------------- */
+
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(6px);
+  animation: overlayIn 0.25s ease-out;
+}
+
+@keyframes overlayIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+.modal {
+  width: min(520px, 90vw);
+  background: var(--color-bg-secondary);
+  border: 1px solid var(--color-border-primary);
+  border-radius: var(--radius-lg);
+  box-shadow: 0 24px 48px rgba(0, 0, 0, 0.5);
+  overflow: hidden;
+  animation: modalIn 0.3s ease-out;
+}
+
+@keyframes modalIn {
+  from { opacity: 0; transform: scale(0.95) translateY(12px); }
+  to   { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+.modal__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-md) var(--space-lg);
+  border-bottom: 1px solid var(--color-border-primary);
+  background: var(--color-bg-tertiary);
+}
+
+.modal__header h2 {
+  font-size: 16px;
+  font-weight: 600;
+  margin: 0;
+}
+
+.modal__body {
+  padding: var(--space-lg);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+}
+
+.modal__field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.modal__label {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--color-text-tertiary);
+}
+
+.modal__value {
+  color: var(--color-text-primary);
+  word-break: break-all;
+}
+
+.modal__args {
+  background: var(--color-bg-primary);
+  padding: var(--space-sm);
+  border-radius: var(--radius-sm);
+  font-family: var(--font-family-mono);
+  font-size: 12px;
+  max-height: 120px;
+  overflow-y: auto;
+}
+
+.modal__arg-row {
+  padding: 2px 0;
+  color: var(--color-text-secondary);
+}
+
+.modal__arg-row code {
+  color: var(--color-brand-primary);
+}
+
+.modal__actions {
+  display: flex;
+  gap: var(--space-sm);
+  padding: var(--space-md) var(--space-lg);
+  border-top: 1px solid var(--color-border-primary);
+  background: var(--color-bg-tertiary);
+}
+
+/* ---------------------------------------------------------------------------
+   Button variants
+   --------------------------------------------------------------------------- */
+
+.btn {
+  flex: 1;
+  padding: var(--space-sm) var(--space-md);
+  border: none;
+  border-radius: var(--radius-sm);
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.15s, transform 0.1s;
+}
+
+.btn:active:not(:disabled) {
+  transform: scale(0.98);
+}
+
+.btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.btn--confirm {
+  background: linear-gradient(135deg, #2ed573, #1e90ff);
+  color: #fff;
+}
+
+.btn--confirm:hover:not(:disabled) {
+  background: linear-gradient(135deg, #26b85e, #1a7ed4);
+}
+
+.btn--cancel {
+  background: var(--color-bg-primary);
+  color: var(--color-text-secondary);
+  border: 1px solid var(--color-border-primary);
+}
+
+.btn--cancel:hover:not(:disabled) {
+  background: var(--color-bg-tertiary);
+  color: var(--color-text-primary);
+}
+

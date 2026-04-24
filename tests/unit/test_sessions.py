@@ -14,6 +14,7 @@
 
 from __future__ import annotations
 
+from collections.abc import AsyncGenerator
 from datetime import UTC, datetime, timedelta
 from unittest.mock import AsyncMock, patch
 from uuid import UUID, uuid4
@@ -33,8 +34,6 @@ from copilot.services.sessions import (
     set_pending,
 )
 
-
-from typing import AsyncGenerator
 
 @pytest.fixture(autouse=True)
 async def _clean_session_store() -> AsyncGenerator[None, None]:

@@ -11,13 +11,14 @@ from __future__ import annotations
 import json
 import sys
 from pathlib import Path
+from typing import Any
 from unittest.mock import patch
 
 ROOT = Path(__file__).resolve().parent.parent.parent
 sys.path.insert(0, str(ROOT / "scripts"))
 
 
-def _urlopen_context(payload: dict[str, object]):
+def _urlopen_context(payload: dict[str, Any]) -> Any:
     from unittest.mock import MagicMock
 
     response = MagicMock()
@@ -31,7 +32,7 @@ def _urlopen_context(payload: dict[str, object]):
 
 class TestCheckChat:
     def test_accepts_any_successful_audit_entry(self):
-        import smoke_test
+        import smoke_test  # type: ignore[import-not-found]
 
         payload = {
             "request_id": "req-1",
