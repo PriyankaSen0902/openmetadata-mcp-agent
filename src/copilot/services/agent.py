@@ -210,6 +210,7 @@ Available tools (ONLY use these):
 - create_test_case: Create a data quality test
 - create_metric: Create a metric definition
 - root_cause_analysis: Analyze root cause of data quality failures
+- github_create_issue: Create a GitHub issue (args: repo, title, body)
 
 Given the user's message and classified intent, select the tools to call and their arguments.
 
@@ -550,9 +551,16 @@ async def execute_tool(state: AgentState) -> AgentState:
         )
 
         try:
-            result = await asyncio.to_thread(
-                om_mcp.call_tool, str(proposal.tool_name), proposal.arguments
-            )
+            if proposal.tool_name == ToolName.GITHUB_CREATE_ISSUE:
+                from copilot.clients import github_mcp
+
+                result = await asyncio.to_thread(
+                    github_mcp.call_tool, str(proposal.tool_name), proposal.arguments
+                )
+            else:
+                result = await asyncio.to_thread(
+                    om_mcp.call_tool, str(proposal.tool_name), proposal.arguments
+                )
             end = datetime.now(UTC)
             record.completed_at = end
             record.duration_ms = int((end - start).total_seconds() * 1000)

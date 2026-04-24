@@ -35,27 +35,31 @@ User: "Find all tables with PII and create GitHub issues for each untagged one"
 ## Implementation
 
 ```python
-from langgraph.prebuilt import ToolNode
-from langchain_mcp_adapters import MultiServerMCPClient
+# src/copilot/clients/github_mcp.py
+# Proxy client that mocks GitHub API calls for the hackathon demo
 
-# Connect to multiple MCP servers
-async with MultiServerMCPClient({
-    "openmetadata": {
-        "url": f"{OM_HOST}/mcp",
-        "transport": "sse",
-        "headers": {"Authorization": f"Bearer {OM_TOKEN}"}
-    },
-    "github": {
-        "command": "npx",
-        "args": ["-y", "@modelcontextprotocol/server-github"],
-        "env": {"GITHUB_TOKEN": GITHUB_TOKEN},
-        "transport": "stdio"
-    }
-}) as client:
-    tools = client.get_tools()
-    # Agent has access to all tools from both servers
+def call_tool(name: str, arguments: dict[str, Any]) -> dict[str, Any]:
+    if name == "github_create_issue":
+        # Check settings.github_token
+        # Return mock issue URL
+        return {"issue_url": f"https://github.com/{repo}/issues/123", ...}
+```
+
+```python
+# src/copilot/services/agent.py
+# Route tool execution to the appropriate client
+
+if proposal.tool_name == ToolName.GITHUB_CREATE_ISSUE:
+    from copilot.clients import github_mcp
+    result = await asyncio.to_thread(
+        github_mcp.call_tool, str(proposal.tool_name), proposal.arguments
+    )
+else:
+    result = await asyncio.to_thread(
+        om_mcp.call_tool, str(proposal.tool_name), proposal.arguments
+    )
 ```
 
 ## Priority
 
-This is a **stretch goal** for Phase 3. If Phase 2 core features are not solid, skip this and focus on polish.
+This was a **stretch goal** for Phase 3, completed using a mocked client strategy to satisfy hackathon constraints while demonstrating cross-MCP orchestration workflows.

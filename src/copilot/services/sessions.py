@@ -126,6 +126,11 @@ async def confirm_chat_proposal(
         }
 
     tool_name = str(pending.tool_name)
+    if tool_name == "github_create_issue":
+        from copilot.clients import github_mcp
+
+        await asyncio.to_thread(github_mcp.call_tool, tool_name, pending.arguments)
+
     entity_fqn = _extract_entity_fqn(pending.arguments)
     if entity_fqn:
         await _transition_if_possible(
